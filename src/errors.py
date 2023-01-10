@@ -1,0 +1,3 @@
+
+class YorException(Exception):
+    pass
