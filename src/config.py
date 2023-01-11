@@ -63,21 +63,40 @@ class Config:
 
     @property
     def raw_config(self) -> dict:
-        """Reads the config file.
+        """Returns the raw config file.
         """
         with open(self.path, "r", encoding="utf-8") as f:
-            return load(f)
+            __config = load(f)
+
+        if self.is_docker():
+            __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config.get("discord.token", ""))
+            __config["openai.key"] = os.environ.get("OPENAI_KEY", __config.get("openai.key", ""))
+
+        return __config
+
 
     async def config(self) -> dict:
         """Returns a config file with validated tokens.
         """
         __config = self.raw_config
-        openai_key = __config["openai.key"]
 
-        if not await self.validate("openai", openai_key):
+        if self.is_docker():
+            __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config["discord.token"])
+            __config["openai.key"] = os.environ.get("OPENAI_KEY", __config["openai.key"])
+
+        if not await self.validate("openai", __config["openai.key"]):
             __config["openai.key"] = None
 
         return __config
+
+    def is_docker(self) -> bool:
+        """Checks if the bot is running in a Docker container.
+        """
+        try:
+            with open("/proc/self/cgroup", "rt") as f:
+                return "docker" in f.read()
+        except FileNotFoundError:
+            return False
 
     async def validate(self, validator: Literal["discord", "openai"], token: Union[str, int]) -> bool:
         """Validates the token.

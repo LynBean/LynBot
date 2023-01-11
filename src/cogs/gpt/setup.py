@@ -10,11 +10,11 @@ import discord
 
 from src.log import logger
 
-from .app import YorCompletion
+from .app import Completion
 from .config import GPTConfig
 
 
-class GPT(discord.ext.commands.Cog):
+class YorGPT(discord.ext.commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self._config = GPTConfig()
@@ -56,7 +56,7 @@ class GPT(discord.ext.commands.Cog):
                    temperature: float=None, top_p: float=None, api_key: str=None) -> None:
 
         try:
-            completion = YorCompletion(
+            completion = Completion(
                 prompt=text, engine=engine, frequency_penalty=frequency_penalty,
                 max_tokens=max_tokens, presence_penalty=presence_penalty, temperature=temperature,
                 top_p=top_p, user=str(context.author.id), api_key=api_key
@@ -117,7 +117,12 @@ class GPT(discord.ext.commands.Cog):
 async def setup(bot: Bot):
     __config = await bot.config()
     if __config["openai.key"] is None:
-        return logger.error("Invalid OpenAI key, this cog will be disabled.")
-
-    await bot.add_cog(GPT(bot))
+        logger.error(f"Invalid OpenAI key. Please set it in the config file ({bot._config.path})")
+        
+        if bot._config.is_docker():
+            logger.warning(f"Detected Docker environment: Please set the environment variable 'OPENAI_KEY' to your valid key.")
+            
+        return
+    
+    await bot.add_cog(YorGPT(bot))
     logger.success("Extension 'src.cogs.gpt.setup' successfully loaded.")

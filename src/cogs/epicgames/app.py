@@ -37,7 +37,7 @@ class GamePool:
         return {"data": [game.__dict__ for game in self.pool]}
 
 
-class App:
+class EpicGames:
     URL = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
 
     def __init__(self):

@@ -70,6 +70,9 @@ class Yor(discord.ext.commands.AutoShardedBot):
         logger.info(f"Ver. Python: {sys.version}")
         logger.info(f"Running on: {platform.system()} {platform.release()} ({os.name})")
 
+        if self._config.is_docker():
+            logger.info(f"Running in Docker container: {os.environ.get('HOSTNAME')}")
+
         self.app_info = await self.application_info()
 
     async def on_message(self, message: Message) -> None:
@@ -96,10 +99,14 @@ def _main():
             log_level=20 # CRITICAL 50, ERROR 40, WARNING 30, INFO 20, DEBUG 10, NOTSET 0
         )
     except discord.errors.LoginFailure as err:
-        logger.critical(f"{err} Please check your token in the config file in the following path: {bot._config.path}")
+        logger.critical(f"{err} Please check your token in the config file in the following path: {bot._config.path}.")
+
+        if bot._config.is_docker():
+            logger.warning(f"Detected Docker environment: Please set the environment variable 'DISCORD_TOKEN' to your valid token.")
+
         asyncio.run(asyncio.sleep(3600))
 
-# @logger.catch
+@logger.catch
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--version", action="store_true")

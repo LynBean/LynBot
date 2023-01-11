@@ -1,7 +1,6 @@
 
 from threading import Thread
 from typing import Iterable
-import asyncio
 import openai
 
 from src.log import logger
@@ -10,13 +9,13 @@ import src
 
 from .config import GPTConfig
 
-class App:
+class OpenAIApp:
     def __init__(self, api_key: str=MISSING):
         self.openai_key = api_key if api_key else src.config.Config().raw_config["openai.key"]
         openai.api_key = self.openai_key
         openai.log = "info"
 
-class YorCompletion(App):
+class Completion(OpenAIApp):
     def __init__(self, *, prompt: str,
                  engine: str=MISSING, frequency_penalty: float=MISSING, max_tokens: int=MISSING,
                  presence_penalty: float=MISSING, temperature: float=MISSING, top_p: float=MISSING,
@@ -42,7 +41,7 @@ class YorCompletion(App):
         self._text: str = ""
 
     def __repr__(self):
-        return f"<YorCompletion prompt={self.prompt!r} engine={self.engine!r} frequency_penalty={self.frequency_penalty!r} " \
+        return f"<Completion prompt={self.prompt!r} engine={self.engine!r} frequency_penalty={self.frequency_penalty!r} " \
             f"max_tokens={self.max_tokens!r} presence_penalty={self.presence_penalty!r} temperature={self.temperature!r} " \
             f"top_p={self.top_p!r} user={self.user!r}>"
 

@@ -6,10 +6,10 @@ import discord
 
 from src.log import logger
 
-from .app import App
+from .app import EpicGames
 
 
-class YorEpicWeeklyFree(discord.ext.commands.Cog):
+class YorEpic(discord.ext.commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -24,7 +24,7 @@ class YorEpicWeeklyFree(discord.ext.commands.Cog):
             embed=Embed(title="Chotto Matte Kudasai")
         )
 
-        app = App()
+        app = EpicGames()
         await app.start()
         data = app.games.to_dict()["data"]
         data.sort(
@@ -63,7 +63,7 @@ class YorEpicWeeklyFree(discord.ext.commands.Cog):
                     for index in range(len(app.games))
                 ],
             )
-            async def callback(self, interaction: Interaction, select: Select):
+            async def callback(self, interaction: Interaction, _: Select):
                 await interaction.response.defer()
                 await interaction.followup.edit_message(
                     message_id=message.id,
@@ -78,5 +78,5 @@ class YorEpicWeeklyFree(discord.ext.commands.Cog):
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(YorEpicWeeklyFree(bot))
+    await bot.add_cog(YorEpic(bot))
     logger.success("Extension 'src.cogs.epicgames.setup' successfully loaded.")
