@@ -1,4 +1,10 @@
 
+# Constants
+
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+
+## Config
+
 DEFAULT_CONFIG = {
     "discord.token": "Get this from https://discord.com/developers/applications",
     "openai.key": "Get this from https://beta.openai.com/account/api-keys",
