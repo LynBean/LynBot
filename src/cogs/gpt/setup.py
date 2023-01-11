@@ -90,7 +90,7 @@ class GPT(discord.ext.commands.Cog):
             embed=Embed(description="!@#$%^&*()_+")
         )
 
-        logger.info(f"Created completion by {context.author.display_name} in {context.guild.name}\n{repr(completion)}")
+        logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}\n{repr(completion)}")
         completion.start()
 
         embeds: List[Embed] = self.embed_trim(completion.text)
@@ -120,4 +120,4 @@ async def setup(bot: Bot):
         return logger.error("Invalid OpenAI key, this cog will be disabled.")
 
     await bot.add_cog(GPT(bot))
-    logger.info("Extension 'src.cogs.gpt.setup' successfully loaded.")
+    logger.success("Extension 'src.cogs.gpt.setup' successfully loaded.")
