@@ -1,5 +1,4 @@
 aiohttp
-bs4
 discord
 loguru
 openai
