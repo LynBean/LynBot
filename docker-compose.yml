@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+
+  yor:
+
+    container_name: yor
+
+    image: ghcr.io/lynbean/yor:main
+
+    restart: always
+
+    volumes:
+      - data:/root/.kim/yor
+
+    environment:
+      DISCORD_TOKEN: "INSERT BOT TOKEN HERE"
+      OPENAI_KEY: "INSERT OPENAI KEY HERE"
+
+volumes:
+  data:
