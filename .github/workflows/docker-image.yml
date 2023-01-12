@@ -2,89 +2,86 @@ name: Docker Image CI
 
 on:
   push:
-    # Publish `main` as Docker `latest` image.
-    branches:
-      - main
+    branches: [ "main" ]
+    tags: [ "*" ]
 
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - '*'
-
-  # Run tests for any PRs.
   pull_request:
+    branches: [ "main" ]
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
-  
-  test:
-  
+
+  build:
+
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Run tests
-        run: |
-          if [ -f docker-compose.test.yml ]; then
-            docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run sut
-          
-          else
-            docker build . --file Dockerfile
-          
-          fi
-          
-  push:
-  
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    
     steps:
       -
         name: Checkout
         uses: actions/checkout@v3
+
       -
-        name: Docker meta
-        id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v4.1.1
+        id: repo_name
+        uses: ASzc/change-string-case-action@v1
         with:
-          images: ghcr.io/lynbean/yor
-          tag-semver: |
-            {{version}}
-            {{major}}.{{minor}}
+          string: ghcr.io/${{ github.repository }}
+
       -
+        name: Get release tag
+        id: rel_tag
+        run: |
+          if [ ${{ github.ref_type }} == "tag" ]
+          then
+            echo "tags=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=latest" >> $GITHUB_OUTPUT
+          fi
+
+      -
+        # Add support for more platforms with QEMU (optional)
+        # https://github.com/docker/setup-qemu-action
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
       -
         name: Cache Docker layers
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v3.2.3
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
       -
-        name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2 
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
-          registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
+
       -
         name: Build and push
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.docker_meta.outputs.tags }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          push: true
+          tags: ${{ steps.rel_tag.outputs.lowercase }}:${{ steps.rel_tag.outputs.tags }}
+          platforms: |
+            linux/amd64,
+            linux/arm64
+
+          cache-from: |
+            type=local,
+            src=/tmp/.buildx-cache
+
+          cache-to: |
+            type=local,
+            dest=/tmp/.buildx-cache
+
+      -
+        name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ steps.rel_tag.outputs.lowercase }}:${{ steps.rel_tag.outputs.tags }}
