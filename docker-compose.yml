@@ -6,7 +6,7 @@ services:
 
     container_name: yor
 
-    image: ghcr.io/lynbean/yor:main
+    image: ghcr.io/lynbean/yor:latest
 
     restart: always
 
