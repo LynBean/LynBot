@@ -75,6 +75,13 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ steps.repo_name.outputs.name }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
 
       -
         name: Docker Buildx (push)
