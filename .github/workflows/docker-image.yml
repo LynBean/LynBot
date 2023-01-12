@@ -102,4 +102,4 @@ jobs:
       -
         name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ steps.repo_name.outputs.name }}:${{ steps.meta.outputs.tags }}
+          docker buildx imagetools inspect ${{ steps.meta.outputs.tags }}
