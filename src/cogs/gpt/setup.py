@@ -55,6 +55,11 @@ class YorGPT(discord.ext.commands.Cog):
                    frequency_penalty: float=None, max_tokens: int=None, presence_penalty: float=None,
                    temperature: float=None, top_p: float=None, api_key: str=None) -> None:
 
+        message: Message = await context.reply(
+            embed=Embed(title="Chotto Matte Kudasai"),
+            ephemeral=ephemeral,
+        )
+
         try:
             completion = Completion(
                 prompt=text, engine=engine, frequency_penalty=frequency_penalty,
@@ -62,27 +67,24 @@ class YorGPT(discord.ext.commands.Cog):
                 top_p=top_p, user=str(context.author.id), api_key=api_key
             )
         except openai.error.OpenAIError as err:
-            await context.reply(
+            logger.warning(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}\n{type(err).__name__}: {err.user_message}")
+            return await message.edit(
                 embed=Embed(
                     title = type(err).__name__,
                     description = err.user_message
-                ),
-                ephemeral=ephemeral
+                )
             )
 
-            return logger.warning(f"Error made by {context.author.display_name} in {context.guild.name}\n{type(err).__name__}: {err.user_message}")
-
-        embed = Embed(
-            title = text[:256],
-        ).set_author(
-            name = context.author.display_name,
-            icon_url = context.author.avatar.url,
-        ).set_footer(
-            text = f"Powered by {completion.engine}",
-            icon_url = "https://openai.com/content/images/2022/05/openai-avatar.png"
-        )
-        await context.reply(
-            embed=embed, ephemeral=ephemeral
+        await message.edit(
+            embed=Embed(
+                title = text[:256],
+            ).set_author(
+                name = context.author.display_name,
+                icon_url = context.author.avatar.url,
+            ).set_footer(
+                text = f"Powered by {completion.engine}",
+                icon_url = "https://openai.com/content/images/2022/05/openai-avatar.png"
+            )
         )
 
         message: Message = await context.reply(
@@ -91,7 +93,18 @@ class YorGPT(discord.ext.commands.Cog):
         )
 
         logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}\n{repr(completion)}")
-        completion.start()
+
+        try:
+            completion.start()
+        except openai.error.OpenAIError as err:
+            logger.warning(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}\n{type(err).__name__}: {err.user_message}")
+            return await context.reply(
+                embed=Embed(
+                    title = type(err).__name__,
+                    description = err.user_message
+                ),
+                ephemeral=ephemeral
+            )
 
         embeds: List[Embed] = self.embed_trim(completion.text)
         async def send_embeds():
@@ -118,11 +131,11 @@ async def setup(bot: Bot):
     __config = await bot.config()
     if __config["openai.key"] is None:
         logger.error(f"Invalid OpenAI key. Please set it in the config file ({bot._config.path})")
-        
+
         if bot._config.is_docker():
             logger.warning(f"Detected Docker environment: Please set the environment variable 'OPENAI_KEY' to your valid key.")
-            
+
         return
-    
+
     await bot.add_cog(YorGPT(bot))
     logger.success("Extension 'src.cogs.gpt.setup' successfully loaded.")
