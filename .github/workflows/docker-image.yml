@@ -57,23 +57,25 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: ./Dockerfile
           push: false
           platforms: |
-            linux/386,
             linux/amd64,
-            linux/arm/v6,
-            linux/arm/v7,
             linux/arm64,
+            linux/riscv64,
             linux/ppc64le,
-            linux/s390x
+            linux/s390x,
+            linux/386,
+            linux/mips64le,
+            linux/mips64,
+            linux/arm/v7,
+            linux/arm/v6
 
           cache-from: |
-            type=local,
-            src=/tmp/.buildx-cache
+            type=local,src=/tmp/.buildx-cache
 
           cache-to: |
-            type=local,
-            dest=/tmp/.buildx-cache
+            type=local,dest=/tmp/.buildx-cache
 
       -
         name: Docker meta
@@ -87,21 +89,24 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: |
-            linux/386,
             linux/amd64,
-            linux/arm/v6,
-            linux/arm/v7,
             linux/arm64,
+            linux/riscv64,
             linux/ppc64le,
-            linux/s390x
+            linux/s390x,
+            linux/386,
+            linux/mips64le,
+            linux/mips64,
+            linux/arm/v7,
+            linux/arm/v6
 
           cache-from: |
-            type=local,
-            src=/tmp/.buildx-cache
+            type=local,src=/tmp/.buildx-cache
 
       -
         name: Inspect image
