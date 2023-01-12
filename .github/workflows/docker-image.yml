@@ -99,7 +99,7 @@ jobs:
           cache-from: |
             type=local,src=/tmp/.buildx-cache
 
-      -
-        name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ steps.meta.outputs.tags }}
+#      -
+#        name: Inspect image
+#        run: |
+#          docker buildx imagetools inspect ${{ steps.meta.outputs.tags }}
