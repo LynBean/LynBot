@@ -3,7 +3,7 @@ from aiohttp import ClientSession
 from json import load, dump
 from os import PathLike
 from os import walk
-from os.path import join
+from os.path import join, exists
 from pathlib import Path
 from typing import Literal, Union
 import sys
@@ -92,11 +92,7 @@ class Config:
     def is_docker(self) -> bool:
         """Checks if the bot is running in a Docker container.
         """
-        try:
-            with open("/proc/self/cgroup", "rt") as f:
-                return "docker" in f.read()
-        except FileNotFoundError:
-            return False
+        return exists(path="/.dockerenv")
 
     async def validate(self, validator: Literal["discord", "openai"], token: Union[str, int]) -> bool:
         """Validates the token.
