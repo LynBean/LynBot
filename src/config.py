@@ -71,6 +71,7 @@ class Config:
         if self.is_docker():
             __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config.get("discord.token", ""))
             __config["openai.key"] = os.environ.get("OPENAI_KEY", __config.get("openai.key", ""))
+            __config["myanimelist.token"] = os.environ.get("MYANIMELIST_TOKEN", __config.get("myanimelist.token", ""))
 
         return __config
 
@@ -83,6 +84,7 @@ class Config:
         if self.is_docker():
             __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config["discord.token"])
             __config["openai.key"] = os.environ.get("OPENAI_KEY", __config["openai.key"])
+            __config["myanimelist.token"] = os.environ.get("MYANIMELIST_TOKEN", __config.get("myanimelist.token", ""))
 
         if not await self.validate("openai", __config["openai.key"]):
             __config["openai.key"] = None

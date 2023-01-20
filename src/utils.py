@@ -1,4 +1,5 @@
 
+from discord import Embed
 from os import PathLike
 from os.path import exists, join
 from pathlib import Path
@@ -65,3 +66,23 @@ def touch_file(filename: str, dir_name: str, exist_ok: bool=True) -> PathLike[st
     path = join(path, filename)
     Path(path).touch(exist_ok=exist_ok)
     return path
+
+def embed_maker(title: str=MISSING, description: str=MISSING, url: str=MISSING, **fields: str) -> Embed:
+    """Returns an embed with the specified fields.
+    """
+    embed = Embed()
+    if title is not MISSING:
+        embed.title = title
+    if description is not MISSING:
+        embed.description = description
+    if url is not MISSING:
+        embed.url = url
+    for name, value in fields.items():
+        embed.add_field(name=name, value=value)
+
+    return embed
+
+def defer_embed() -> Embed:
+    """Returns an embed that indicates that the bot is processing the command.
+    """
+    return Embed(title="Chotto matte kudasai")
