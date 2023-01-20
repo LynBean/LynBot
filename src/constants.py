@@ -8,6 +8,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 DEFAULT_CONFIG = {
     "discord.token": "Get this from https://discord.com/developers/applications",
     "openai.key": "Get this from https://beta.openai.com/account/api-keys",
+    # "myanimelist.token": "Get this from https://myanimelist.net/apiconfig",
     "owner.id": "Your Discord ID",
     "admin.ids": ["Discord ID-1", "Discord ID-2"],
 }
