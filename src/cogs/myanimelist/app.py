@@ -76,6 +76,7 @@ class Jikan(AioJikan):
             "studios": ", ".join([s["name"] for s in result["studios"]]),
             "genres": ", ".join([g["name"] for g in result["genres"]]),
             "themes": ", ".join([t["name"] for t in result["themes"]]),
+            "duration": result["duration"],
         }
 
 
