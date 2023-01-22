@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 from discord import Embed
 from os import PathLike
 from os.path import exists, join
@@ -67,10 +68,17 @@ def touch_file(filename: str, dir_name: str, exist_ok: bool=True) -> PathLike[st
     Path(path).touch(exist_ok=exist_ok)
     return path
 
-def embed_maker(title: str=MISSING, description: str=MISSING, url: str=MISSING, **fields: str) -> Embed:
+def embed_maker(title: str=MISSING,
+                description: str=MISSING,
+                url: str=MISSING,
+                init_embed: Embed=MISSING,
+                **fields: str
+                ) -> Embed:
     """Returns an embed with the specified fields.
     """
     embed = Embed()
+    if init_embed is not MISSING:
+        embed = deepcopy(init_embed)
     if title is not MISSING:
         embed.title = title
     if description is not MISSING:
