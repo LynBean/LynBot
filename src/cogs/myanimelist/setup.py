@@ -1,9 +1,10 @@
 
-from typing import List
 from aiohttp import ClientSession
+from jikanpy import APIException
+from typing import List
 
 from discord import Embed, Message, Interaction, SelectOption
-from discord.app_commands import Choice, describe
+from discord.app_commands import Choice, describe, autocomplete
 from discord.ext.commands import Bot, hybrid_group, Context
 from discord.ui import select, Select
 import discord
@@ -11,14 +12,15 @@ import discord
 from src.log import logger
 from src.utils import *
 
-from .app import Jikan, Mal
+from .app import Mal, Anime, Manga
 
 
 class MalCog(discord.ext.commands.Cog):
+    MAL_ICON_URL = "https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAiC8a86sHufn_jOI-JGtoCQ"
+
     def __init__(self, bot: Bot):
         self.bot = bot
         self.mal = Mal()
-        self.jikan = Jikan()
 
     @hybrid_group(
         name="mal",
@@ -28,126 +30,111 @@ class MalCog(discord.ext.commands.Cog):
     async def mal(self, _):
         pass
 
+    async def _prompt_autocomplete(
+        self,
+        interaction: Interaction,
+        current: str
+    ) -> List[Choice]:
+        """Autocomplete for the title option.
+        By sending a request to the MAL API, we can get a list of anime/manga
+        """
+        return [
+            Choice(name=name, value=mal_id)
+            for name, mal_id in await self.mal.search(
+                current,
+                interaction.data["options"][0]["name"],
+            )
+        ]
+
     @mal.command(
         name="anime",
         description="Search for an anime!",
+    )
+    @autocomplete(
+        title=_prompt_autocomplete,
     )
     @describe(
         title="The anime you want to search for.",
         ephemeral="Whether or not the response should be ephemeral.",
     )
-    async def anime(self,
-                    context: Context,
-                    title: str,
-                    ephemeral: bool=False,
-                    ):
+    async def anime(
+        self,
+        context: Context,
+        title: str,
+        ephemeral: bool=False,
+    ):
         logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}")
         message: Message = await context.reply(
             embed=defer_embed(),
             ephemeral=ephemeral
         )
 
-        async with ClientSession() as session:
-            if (await session.get(f"{self.mal.WEB_URL}anime/{title}")).status >= 400:
-                await session.close()
-                return await message.edit(
-                    embed=Embed(
-                        title="Please try again!",
-                    )
+        try:
+            modal = Anime(context, int(title))
+            await message.edit(embed=await modal.overview(), view=modal)
+            await modal.wait()
+        except ValueError:
+            return await message.edit(
+                embed=Embed(
+                    title="Looks like you didn't choose a valid anime!",
+                    description="Please try again.",
                 )
-
-        response = await self.jikan.anime(id=int(title))
-
-        class anime_modal(discord.ui.View):
-            def __init__(self):
-                super().__init__(timeout=300)
-                self.overview: Embed = None
-                self.fullview: Embed = None
-
-                self._init_overview()
-                self._init_fullview()
-
-            def _init_overview(self) -> None:
-                if self.overview is not None:
-                    return
-
-                self.overview = embed_maker(
-                    title=response["title"],
-                    description=response["synopsis"],
-                    url=response["url"],
-                    Score=f"⭐ {response['score']}",
-                    Ranking=f"🏆 #{response['rank']}",
-                    Popularity=f"🔥 #{response['popularity']}",
-                    Members=f"😍 {response['members']:,}",
-                    Type=f"📺 {response['type']}",
-                    Source=f"📖 {response['source']}",
-                    Episodes=f"🆕 {response['releases']}",
-                    Aired=f"📅 {response['aired_string']}",
-                ).set_author(
-                    name=context.author.display_name,
-                    icon_url=context.author.avatar.url,
-                ).set_footer(
-                    text=response["background"],
-                    icon_url="https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAiC8a86sHufn_jOI-JGtoCQ",
-                ).set_thumbnail(
-                    url=response["image_url"],
-                )
-
-            def _init_fullview(self) -> None:
-                if self.fullview is not None:
-                    return
-
-                self._init_overview()
-                self.fullview = embed_maker(
-                    init_embed=self.overview,
-                    title=response["title_jp"] or response["title"],
-                    Rating=f"🔞 {response['rating']}",
-                    Broadcast=f"📺 {response['broadcast']}",
-                    ID=response["id"],
-                    Scored_by=f"{response['scored_by']:,}",
-                    Favorites=f"{response['favorites']:,}",
-                    Season=response["season"],
-                    Year=response["year"],
-                    Producers=response["producers"],
-                    Licensors=response["licensors"],
-                    Studios=response["studios"],
-                    Genres=response["genres"],
-                    Themes=response["themes"],
-                    Duration=response["duration"],
-                ).set_image(
-                    url=response["image_url"],
-                )
-
-            @select(
-                placeholder="Category",
-                options=[
-                    SelectOption(label="Overview", value="overview"),
-                    SelectOption(label="Full View", value="fullview"),
-                ]
             )
-            async def select_callback(self, interaction: Interaction, select: Select):
-                if select.values[0] == "fullview":
-                    await interaction.response.edit_message(embed=self.fullview, view=self)
-                else:
-                    await interaction.response.edit_message(embed=self.overview, view=self)
+        except APIException as err:
+            return await message.edit(
+                embed=Embed(
+                    title=err.error_json["type"],
+                    description=err.error_json["message"],
+                ).set_footer(
+                    text=err.error_json["error"],
+                    icon_url=self.MAL_ICON_URL,
+                )
+            )
 
-        view = anime_modal()
-        await message.edit(embed=view.overview, view=view)
-        await view.wait()
-
-
-    @anime.autocomplete(
-        name="title"
+    @mal.command(
+        name="manga",
+        description="Search for an manga!",
     )
-    async def anime_autocomplete(self, context: Context, current: str) -> List[Choice]:
-        if current.strip() == "":
-            return [Choice(name="Keyword must have at least 1 character to search.", value="400")]
+    @autocomplete(
+        title=_prompt_autocomplete,
+    )
+    @describe(
+        title="The manga you want to search for.",
+        ephemeral="Whether or not the response should be ephemeral.",
+    )
+    async def manga(
+        self,
+        context: Context,
+        title: str,
+        ephemeral: bool=False,
+    ):
+        logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}")
+        message: Message = await context.reply(
+            embed=defer_embed(),
+            ephemeral=ephemeral
+        )
 
-        return [
-            Choice(name=name, value=mal_id)
-            for name, mal_id in await self.mal.search(current, "anime")
-        ]
-
+        try:
+            modal = Manga(context, int(title))
+            await message.edit(embed=await modal.overview(), view=modal)
+            await modal.wait()
+        except ValueError:
+            return await message.edit(
+                embed=Embed(
+                    title="Looks like you didn't choose a valid manga!",
+                    description="Please try again.",
+                )
+            )
+        except APIException as err:
+            return await message.edit(
+                embed=Embed(
+                    title=err.error_json["type"],
+                    description=err.error_json["message"],
+                ).set_footer(
+                    text=err.error_json["error"],
+                    icon_url=self.MAL_ICON_URL,
+                )
+            )
 
 
 async def setup(bot: Bot):
