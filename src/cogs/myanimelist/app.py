@@ -1,8 +1,10 @@
 
 from aiohttp import ClientSession
-from jikanpy import AioJikan
-from typing import TypeVar, Union, Optional, Dict, Any, Literal, List, Tuple
 from copy import deepcopy
+from jikanpy import AioJikan
+from jikanpy.exceptions import APIException
+from typing import TypeVar, Union, Optional, Dict, Any, Literal, List, Tuple, Callable
+import asyncio
 
 from discord import Embed, Interaction, SelectOption, ButtonStyle
 from discord.ext.commands import Context
@@ -45,7 +47,7 @@ class Jikan(AioJikan):
     def _wrap_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Wraps the data from the given response.
         """
-        data = data["data"]
+        data = data.get("data", data)
         result = deepcopy(data)
         result["id"] = result["mal_id"]
         result["url"] = result["url"]
@@ -212,7 +214,7 @@ class Mal:
         ]
 
 
-class Modal(discord.ui.View):
+class Entry_Modal(discord.ui.View):
     def __init__(
         self,
         context: Context,
@@ -236,47 +238,55 @@ class Modal(discord.ui.View):
             return self._overview
 
         await self.data()
+        self._overview = self._wrap_overview(
+            self._data
+        )
+        return self._overview
 
+    def _wrap_overview(self, data) -> Embed:
         fields: Dict[str, str] = {}
-        if self._data["score"]:
-            fields["Score"] = f"⭐ {self._data['score']} / 10"
-        if self._data["rank"]:
-            fields["Ranking"] = f"🏆 #{self._data['rank']}"
-        if self._data["popularity"]:
-            fields["Popularity"] = f"🔥 #{self._data['popularity']}"
-        if self._data["members"]:
-            fields["Members"] = f"😍 {self._data['members']:,}"
-        if self._data["type"]:
-            fields["Type"] = f"📺 {self._data['type']}"
-        if self._data["source"]:
-            fields["Source"] = f"📖 {self._data['source']}"
-        if self._data["episodes"]:
-            fields["Episodes"] = f"🆕 {self._data['episodes']}"
-        if self._data["volumes"]:
-            fields["Volumes"] = f"🆕 {self._data['volumes']}"
-        if self._data["chapters"]:
-            fields["Chapters"] = f"🆕 {self._data['chapters']}"
-        if self._data["aired_string"]:
-            fields["Aired"] = f"📅 {self._data['aired_string']}"
-        if self._data["published_string"]:
-            fields["Published"] = f"📅 {self._data['published_string']}"
+        if data["score"]:
+            fields["Score"] = f"⭐ {data['score']} / 10"
+        if data["rank"]:
+            fields["Ranking"] = f"🏆 #{data['rank']}"
+        if data["popularity"]:
+            fields["Popularity"] = f"🔥 #{data['popularity']}"
+        if data["members"]:
+            fields["Members"] = f"😍 {data['members']:,}"
+        if data["type"]:
+            fields["Type"] = f"📺 {data['type']}"
+        if data["source"]:
+            fields["Source"] = f"📖 {data['source']}"
+        if data["episodes"]:
+            fields["Episodes"] = f"🆕 {data['episodes']}"
+        if data["volumes"]:
+            fields["Volumes"] = f"🆕 {data['volumes']}"
+        if data["chapters"]:
+            fields["Chapters"] = f"🆕 {data['chapters']}"
+        if data["aired_string"]:
+            fields["Aired"] = f"📅 {data['aired_string']}"
+        if data["published_string"]:
+            fields["Published"] = f"📅 {data['published_string']}"
 
-        self._overview = embed_maker(
-            title=self._data["title"][:256],
-            description=self._data["synopsis"][:4096],
-            url=self._data["url"],
+        if data["synopsis"]:
+            description = data["synopsis"][:4096]
+        else:
+            description = "No synopsis available."
+
+        return embed_maker(
+            title=data["title"][:256],
+            description=description,
+            url=data["url"],
             **fields,
         ).set_author(
             name=self.context.author.display_name[:256],
             icon_url=self.context.author.avatar.url,
         ).set_footer(
-            text=self._data["background"][:2048] if self._data["background"] else None,
+            text=data["background"][:2048] if data["background"] else None,
             icon_url="https://image.myanimelist.net/ui/OK6W_koKDTOqqqLDbIoPAiC8a86sHufn_jOI-JGtoCQ",
         ).set_thumbnail(
-            url=self._data["image_url"],
+            url=data["image_url"],
         )
-
-        return self._overview
 
     async def fullview(self) -> Embed:
         if self._fullview is not None:
@@ -378,7 +388,7 @@ class Modal(discord.ui.View):
             )
 
 
-class Anime(Modal):
+class Anime(Entry_Modal):
     def __init__(
         self,
         context: Context,
@@ -393,7 +403,7 @@ class Anime(Modal):
         await super().data()
 
 
-class Manga(Modal):
+class Manga(Entry_Modal):
     def __init__(
         self,
         context: Context,
@@ -406,3 +416,323 @@ class Manga(Modal):
             self._data = await self.jikan.manga(int(self.id))
 
         await super().data()
+
+
+class Entries_Modal(discord.ui.View):
+    def __init__(
+        self,
+        context: Context,
+        data,
+    ):
+        super().__init__(timeout=300)
+        self.context = context
+        self.jikan = Jikan()
+        self._data = data
+        self._data_pages = None
+        self._current_page = 0
+
+    def __len__(self):
+        """Return the number of pages.
+        1 page = 25 entries
+        """
+        if self.data is None:
+            return 0
+
+        # Ceil division
+        return -(- (len(self.data["data"])) // 25)
+
+    @property
+    def data(self):
+        return self._data
+
+    def data_pages(self):
+        """Return sorted data in multiple pages.
+        Each page contains 25 entries.
+        """
+        if self._data_pages is None:
+            self._data_pages = [
+                self.data["data"][i * 25: i * 25 + 25]
+                for i in range(0, len(self))
+            ]
+
+            self.wrap_data()
+
+        return self._data_pages
+
+    def wrap_data(self):
+        for page_index, page in enumerate(self.data_pages()):
+            for entry_index, entry in enumerate(page):
+                entry = self.jikan._wrap_data(entry)
+                self._data_pages[page_index][entry_index] = entry
+
+    def reload(self):
+        self.clear_items()
+        self.page_select()
+        self.entry_select()
+
+    def entry_embed(self, entry_index: int):
+        return Entry_Modal._wrap_overview(
+            self,
+            self.data_pages()[self._current_page][int(entry_index)],
+        )
+
+    async def _page_callback(self, interaction: Interaction):
+        await interaction.response.defer()
+        self._current_page = int(interaction.data["values"][0])
+        self.reload()
+        await interaction.followup.edit_message(
+            message_id=interaction.message.id,
+            embed=self.entry_embed(0),
+            view=self,
+        )
+
+    def page_select(self):
+        if self.data is None:
+            return
+
+        if len(self) <= 1:
+            return
+
+        item = Select(
+            placeholder=f"⭐ On page {self._current_page + 1} out of {(len(self) + 1) if len(self) < 25 else 25}",
+            options=[
+                SelectOption(
+                    label=f"Page {i + 1}",
+                    value=i
+                )
+                for index, i in enumerate(range(len(self)))
+                if index < 25 # Max 25 options
+            ]
+        )
+
+        item.callback = self._page_callback
+        self.add_item(item)
+
+    async def _entry_callback(self, interaction: Interaction):
+        await interaction.response.defer()
+        await interaction.followup.edit_message(
+            message_id=interaction.message.id,
+            embed=self.entry_embed(interaction.data["values"][0])
+        )
+
+    def entry_select(self):
+        if self.data is None:
+            return
+
+        item = Select(
+            placeholder="⭐ Choose an entry",
+            options=[
+                SelectOption(
+                    label=entry["title"][:100],
+                    value=index
+                )
+                for index, entry in enumerate(
+                    self.data_pages()[self._current_page]
+                )
+            ]
+        )
+
+        item.callback = self._entry_callback
+        self.add_item(item)
+
+async def _keep_retrying(func: Callable, **kwargs):
+    """Keep retrying for Jikan response until it succeeds.
+    """
+    while True:
+        try:
+            return await func(**kwargs)
+        except APIException:
+            await asyncio.sleep(1)
+            continue
+
+async def _load_all_pages(
+    func: Callable,
+    **kwargs
+):
+    """Load all pages of the data.
+    """
+    page = 1
+    data = {"data": []}
+
+    while True:
+        response = await _keep_retrying(func, page=page, **kwargs)
+        data["data"] += response["data"]
+
+        # If the number of pages is greater than 25, then we will stop loading
+        # As one select menu can only have 25 options
+        if -(- (len(data["data"])) // 25) > 25:
+            pass
+        elif response["pagination"]["has_next_page"]:
+            page += 1
+            continue
+
+        break
+
+    return data
+
+
+class Seasonal(Entries_Modal):
+    def __init__(
+        self,
+        context: Context,
+    ):
+        super().__init__(context, None)
+
+
+    async def init_now(self):
+        self._data = await _load_all_pages(self.jikan.seasons, extension="now")
+
+    async def init_upcoming(
+        self,
+        filter: Literal[
+            "tv", "movie", "ova", "special", "ona", "music"
+        ]=MISSING,
+    ):
+        self._data = await _load_all_pages(
+            self.jikan.seasons,
+            extension="upcoming",
+            parameters={
+                "filter": filter
+            }
+        )
+
+    async def init_season(
+        self,
+        year: int,
+        season: str,
+    ):
+        self._data = await _load_all_pages(self.jikan.seasons, year=year, season=season)
+
+
+class Top(Entries_Modal):
+    def __init__(
+        self,
+        context: Context,
+    ):
+        super().__init__(context, None)
+
+    async def init_anime(
+        self,
+        entry_type: Literal[
+            "tv", "movie", "ova", "special", "ona", "music"
+        ]=MISSING,
+        filter: Literal[
+            "airing", "upcoming", "bypopularity", "favorite"
+        ]=MISSING,
+    ):
+        self._data = await _load_all_pages(
+            self.jikan.top,
+            type="anime",
+            parameters={
+                "filter": filter,
+                "limit": 625,
+                "type": entry_type,
+            },
+        )
+
+    async def init_manga(
+        self,
+        entry_type: Literal[
+            "manga", "novel", "lightnovel", "oneshot", "doujin", "manhwa", "manhua"
+        ]=MISSING,
+        filter: Literal[
+            "publishing", "upcoming", "bypopularity", "favorite"
+        ]=MISSING,
+    ):
+        self._data = await _load_all_pages(
+            self.jikan.top,
+            type="anime",
+            parameters={
+                "filter": filter,
+                "limit": 625,
+                "type": entry_type,
+            },
+        )
+
+    # TODO: Compatibility with the new response format
+    async def init_people(self):
+        self._data = await _load_all_pages(
+            self.jikan.top,
+            type="people",
+            parameters={
+                "limit": 625
+            },
+        )
+
+    # TODO: Compatibility with the new response format
+    async def init_characters(self):
+        self._data = await _load_all_pages(
+            self.jikan.top,
+            type="characters",
+            parameters={
+                "limit": 625
+            },
+        )
+
+    # TODO: Compatibility with the new response format
+    async def init_reviews(self):
+        self._data = await _load_all_pages(
+            self.jikan.top,
+            type="reviews",
+            parameters={
+                "limit": 625
+            },
+        )
+
+
+class Random(Entries_Modal):
+    def __init__(
+        self,
+        context: Context,
+        number: int=3,
+    ):
+        super().__init__(context, None)
+        self.number = number
+
+        if number > 25:
+            self.number = 25
+        elif number < 1:
+            self.number = 1
+
+    async def init_anime(self):
+        self._data = {"data": []}
+
+        for _ in range(self.number):
+            self._data["data"].append(
+                (await _keep_retrying(self.jikan.random, type="anime"))["data"]
+            )
+
+    async def init_manga(self):
+        self._data = {"data": []}
+
+        for _ in range(self.number):
+            self._data["data"].append(
+                (await _keep_retrying(self.jikan.random, type="manga"))["data"]
+            )
+
+    # TODO: Compatibility with the new response format
+    async def init_characters(self):
+        self._data = {"data": []}
+
+        for _ in range(self.number):
+            self._data["data"].append(
+                (await _keep_retrying(self.jikan.random, type="characters"))["data"]
+            )
+
+    # TODO: Compatibility with the new response format
+    async def init_people(self):
+        self._data = {"data": []}
+
+        for _ in range(self.number):
+            self._data["data"].append(
+                (await _keep_retrying(self.jikan.random, type="people"))["data"]
+            )
+
+    # TODO: Compatibility with the new response format
+    async def init_users(self):
+        self._data = {"data": []}
+
+        for _ in range(self.number):
+            self._data["data"].append(
+                (await _keep_retrying(self.jikan.random, type="users"))["data"]
+            )
