@@ -221,7 +221,9 @@ class Entry_Modal(discord.ui.View):
         id: int,
         timeout: Optional[float]=MISSING
     ):
-        super().__init__(timeout=timeout)
+        super().__init__(
+            timeout=timeout or config.raw_config["interaction.timeout"]
+        )
         self.jikan = Jikan()
         self.id = id
         self.context = context
@@ -423,8 +425,11 @@ class Entries_Modal(discord.ui.View):
         self,
         context: Context,
         data,
+        timeout: Optional[int]=MISSING,
     ):
-        super().__init__(timeout=300)
+        super().__init__(
+            timeout=timeout or config.raw_config["interaction.timeout"]
+        )
         self.context = context
         self.jikan = Jikan()
         self._data = data
