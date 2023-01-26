@@ -12,7 +12,18 @@ import discord
 from src.log import logger
 from src.utils import *
 
-from .app import Mal, Jikan, Anime, Manga, Seasonal, Top, Random
+from .app import (
+    Mal,
+    Jikan,
+    Anime,
+    Manga,
+    Characters,
+    People,
+    Users,
+    Seasonal,
+    Top,
+    Random
+)
 
 
 class MalCog(discord.ext.commands.Cog):
@@ -54,7 +65,7 @@ class MalCog(discord.ext.commands.Cog):
         ]
 
     # ---------------------------- #
-    #     Anime/Manga Commands    #
+    #     Search Commands          #
 
     @mal.command(
         name="anime",
@@ -103,7 +114,7 @@ class MalCog(discord.ext.commands.Cog):
 
     @mal.command(
         name="manga",
-        description="Search for an manga!",
+        description="Search for a manga!",
     )
     @autocomplete(
         title=_prompt_autocomplete,
@@ -135,6 +146,134 @@ class MalCog(discord.ext.commands.Cog):
                     description="Please try again.",
                 )
             )
+        except APIException as err:
+            return await message.edit(
+                embed=Embed(
+                    title=err.error_json["type"],
+                    description=err.error_json["message"],
+                ).set_footer(
+                    text=err.error_json["error"],
+                    icon_url=self.MAL_ICON_URL,
+                )
+            )
+
+    @mal.command(
+        name="character",
+        description="Search for a character!",
+    )
+    @autocomplete(
+        title=_prompt_autocomplete,
+    )
+    @describe(
+        title="The character you want to search for.",
+        ephemeral="Whether or not the response should be ephemeral.",
+    )
+    async def character(
+        self,
+        context: Context,
+        title: str,
+        ephemeral: bool=False,
+    ):
+        logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}")
+        message: Message = await context.reply(
+            embed=defer_embed(),
+            ephemeral=ephemeral
+        )
+
+        try:
+            modal = Characters(context, int(title))
+            await message.edit(embed=await modal.overview(), view=modal)
+            await modal.wait()
+        except ValueError:
+            return await message.edit(
+                embed=Embed(
+                    title="Looks like you didn't choose a valid character!",
+                    description="Please try again.",
+                )
+            )
+        except APIException as err:
+            return await message.edit(
+                embed=Embed(
+                    title=err.error_json["type"],
+                    description=err.error_json["message"],
+                ).set_footer(
+                    text=err.error_json["error"],
+                    icon_url=self.MAL_ICON_URL,
+                )
+            )
+
+    @mal.command(
+        name="person",
+        description="Search for a person!",
+    )
+    @autocomplete(
+        title=_prompt_autocomplete,
+    )
+    @describe(
+        title="The person you want to search for.",
+        ephemeral="Whether or not the response should be ephemeral.",
+    )
+    async def person(
+        self,
+        context: Context,
+        title: str,
+        ephemeral: bool=False,
+    ):
+        logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}")
+        message: Message = await context.reply(
+            embed=defer_embed(),
+            ephemeral=ephemeral
+        )
+
+        try:
+            modal = People(context, int(title))
+            await message.edit(embed=await modal.overview(), view=modal)
+            await modal.wait()
+        except ValueError:
+            return await message.edit(
+                embed=Embed(
+                    title="Looks like you didn't choose a valid person!",
+                    description="Please try again.",
+                )
+            )
+        except APIException as err:
+            return await message.edit(
+                embed=Embed(
+                    title=err.error_json["type"],
+                    description=err.error_json["message"],
+                ).set_footer(
+                    text=err.error_json["error"],
+                    icon_url=self.MAL_ICON_URL,
+                )
+            )
+
+    @mal.command(
+        name="user",
+        description="Search for an user!",
+    )
+    @autocomplete(
+        title=_prompt_autocomplete,
+    )
+    @describe(
+        title="The user you want to search for.",
+        ephemeral="Whether or not the response should be ephemeral.",
+    )
+    async def user(
+        self,
+        context: Context,
+        title: str,
+        ephemeral: bool=False,
+    ):
+        logger.info(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}")
+        message: Message = await context.reply(
+            embed=defer_embed(),
+            ephemeral=ephemeral
+        )
+
+        try:
+            modal = Users(context, title)
+            await message.edit(embed=await modal.overview(), view=modal)
+            await modal.wait()
         except APIException as err:
             return await message.edit(
                 embed=Embed(
@@ -292,7 +431,7 @@ class MalCog(discord.ext.commands.Cog):
 
         top = Top(context)
         await top.init_anime(entry_type=type, filter=filter)
-        top.reload()
+        top.load()
         await message.edit(
             embed=top.entry_embed(0),
             view=top
@@ -321,13 +460,60 @@ class MalCog(discord.ext.commands.Cog):
 
         top = Top(context)
         await top.init_manga(entry_type=type, filter=filter)
-        top.reload()
+        top.load()
         await message.edit(
             embed=top.entry_embed(0),
             view=top
         )
         await top.wait()
         await message.edit(view=None)
+
+    @mal.command(
+        name="top-characters",
+        description="Get the top characters!",
+    )
+    async def top_characters(
+        self,
+        context: Context,
+        ephemeral: bool=False,
+    ):
+        message: Message = await context.reply(
+            embed=defer_embed(), ephemeral=ephemeral
+        )
+
+        top = Top(context)
+        await top.init_characters()
+        top.load()
+        await message.edit(
+            embed=top.entry_embed(0),
+            view=top
+        )
+        await top.wait()
+        await message.edit(view=None)
+
+    @mal.command(
+        name="top-people",
+        description="Get the top people!",
+    )
+    async def top_people(
+        self,
+        context: Context,
+        ephemeral: bool=False,
+    ):
+        message: Message = await context.reply(
+            embed=defer_embed(), ephemeral=ephemeral
+        )
+
+        top = Top(context)
+        await top.init_people()
+        top.load()
+        await message.edit(
+            embed=top.entry_embed(0),
+            view=top
+        )
+        await top.wait()
+        await message.edit(view=None)
+
 
     # ---------------------------- #
     #    Random Anime/Manga        #
@@ -348,7 +534,7 @@ class MalCog(discord.ext.commands.Cog):
 
         random = Random(context, number=how_many)
         await random.init_anime()
-        random.reload()
+        random.load()
         await message.edit(
             embed=random.entry_embed(0),
             view=random
@@ -372,7 +558,79 @@ class MalCog(discord.ext.commands.Cog):
 
         random = Random(context, number=how_many)
         await random.init_manga()
-        random.reload()
+        random.load()
+        await message.edit(
+            embed=random.entry_embed(0),
+            view=random
+        )
+        await random.wait()
+        await message.edit(view=None)
+
+    @mal.command(
+        name="random-characters",
+        description="Get a random characters!",
+    )
+    async def random_characters(
+        self,
+        context: Context,
+        how_many: int=3,
+        ephemeral: bool=False,
+    ):
+        message: Message = await context.reply(
+            embed=defer_embed(), ephemeral=ephemeral
+        )
+
+        random = Random(context, number=how_many)
+        await random.init_characters()
+        random.load()
+        await message.edit(
+            embed=random.entry_embed(0),
+            view=random
+        )
+        await random.wait()
+        await message.edit(view=None)
+
+    @mal.command(
+        name="random-people",
+        description="Get a random people!",
+    )
+    async def random_people(
+        self,
+        context: Context,
+        how_many: int=3,
+        ephemeral: bool=False,
+    ):
+        message: Message = await context.reply(
+            embed=defer_embed(), ephemeral=ephemeral
+        )
+
+        random = Random(context, number=how_many)
+        await random.init_people()
+        random.load()
+        await message.edit(
+            embed=random.entry_embed(0),
+            view=random
+        )
+        await random.wait()
+        await message.edit(view=None)
+
+    @mal.command(
+        name="random-users",
+        description="Get a random users!",
+    )
+    async def random_users(
+        self,
+        context: Context,
+        how_many: int=3,
+        ephemeral: bool=False,
+    ):
+        message: Message = await context.reply(
+            embed=defer_embed(), ephemeral=ephemeral
+        )
+
+        random = Random(context, number=how_many)
+        await random.init_users()
+        random.load()
         await message.edit(
             embed=random.entry_embed(0),
             view=random
