@@ -69,6 +69,7 @@ class Config:
             __config = load(f)
 
         if self.is_docker():
+            __config["interaction.timeout"] = int(os.environ.get("INTERACTION_TIMEOUT", __config.get("interaction.timeout", 600)))
             __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config.get("discord.token", ""))
             __config["openai.key"] = os.environ.get("OPENAI_KEY", __config.get("openai.key", ""))
             __config["myanimelist.token"] = os.environ.get("MYANIMELIST_TOKEN", __config.get("myanimelist.token", ""))
@@ -82,6 +83,7 @@ class Config:
         __config = self.raw_config
 
         if self.is_docker():
+            __config["interaction.timeout"] = int(os.environ.get("INTERACTION_TIMEOUT", __config.get("interaction.timeout", 600)))
             __config["discord.token"] = os.environ.get("DISCORD_TOKEN", __config["discord.token"])
             __config["openai.key"] = os.environ.get("OPENAI_KEY", __config["openai.key"])
             __config["myanimelist.token"] = os.environ.get("MYANIMELIST_TOKEN", __config.get("myanimelist.token", ""))
