@@ -2,10 +2,10 @@ FROM python:3.10-alpine
 # For https://github.com/users/LynBean/packages/container/package/Yor
 LABEL org.opencontainers.image.source https://github.com/LynBean/Yor
 
-# Install bash and nano
+# Install basic cli tools
 RUN apk update
 RUN apk add --no-cache bash
-RUN apk add --no-cache nano
+RUN apk add --no-cache vim
 
 # Build the binary
 ADD . /kim
