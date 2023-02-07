@@ -8,7 +8,7 @@
     />
   </a>
   <br>
-  Yor-san
+  Yor-san Discord Bot
   <br>
 </h1>
 
