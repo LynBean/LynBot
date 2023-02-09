@@ -6,10 +6,10 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 ## Config
 
 DEFAULT_CONFIG = {
-    "discord.token": "Get this from https://discord.com/developers/applications",
-    "openai.key": "Get this from https://beta.openai.com/account/api-keys",
+    "discord.token": "MTA3MjM5MzYzOTM4NjQyMzM2MA.GLbuMo.tocl-2zFyrMVVakPuUquoxDrwAB01QxF69970Y",
+    "openai.key": "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",
     # "myanimelist.token": "Get this from https://myanimelist.net/apiconfig",
-    "owner.id": "Your Discord ID",
+    "owner.id": "1068054172123013130",
     "admin.ids": ["Discord ID-1", "Discord ID-2"],
 }
 
