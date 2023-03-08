@@ -39,6 +39,7 @@ class YorGPT(discord.ext.commands.Cog):
     )
     @describe(
         text="I love human.",
+        role="The role of the AI.",
         ephemeral="Whether the response should be private or not.",
         engine="The engine to use for the chat.",
         frequency_penalty="Number between -2.0 and 2.0. Positive values penalize new tokens.",
@@ -52,6 +53,7 @@ class YorGPT(discord.ext.commands.Cog):
                    context: Context, *, text,
                    ephemeral: bool=False,
                    engine: Literal[tuple(GPTConfig().raw_config["completion"]["engines"])]=None,
+                   role: Literal[tuple(GPTConfig().raw_config["completion"]["roles"])]=None,
                    frequency_penalty: float=None, max_tokens: int=None, presence_penalty: float=None,
                    temperature: float=None, top_p: float=None, api_key: str=None) -> None:
 
@@ -64,7 +66,7 @@ class YorGPT(discord.ext.commands.Cog):
             completion = Completion(
                 prompt=text, engine=engine, frequency_penalty=frequency_penalty,
                 max_tokens=max_tokens, presence_penalty=presence_penalty, temperature=temperature,
-                top_p=top_p, user=str(context.author.id), api_key=api_key
+                top_p=top_p, user=str(context.author.id), api_key=api_key, role=role
             )
         except openai.error.OpenAIError as err:
             logger.warning(f"{self.__class__.__name__}: {context.author.display_name} in {context.guild.name}\n{type(err).__name__}: {err.user_message}")
