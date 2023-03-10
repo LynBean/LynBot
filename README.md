@@ -1,33 +1,21 @@
 <h1 align="center">
   <br>
-  <a href="https://github.com/LynBean/Yor">
+  <a href="https://github.com/LynBean/Ai">
     <img 
          style="display: block;-webkit-user-select: none;margin: auto;cursor: zoom-in;background-color: hsl(0, 0%, 90%);transition: background-color 300ms;"
-         src="https://lh3.googleusercontent.com/blogger_img_proxy/AHs97-nStAbox0Tv-VDgFgQw_5arj0yhrGRfCesLDS6RuYII80Xeb2rfbYvUGhxrnOBG6zRQV9le7tHsJ_HIoLASVXlbXrNlspPtkZD3av-3U8pN-WTczFzml0KGVQWUjXy7jpof9rI=w919-h516-p-k-no-nu"
-         alt="Yor"
+         src=https://user-images.githubusercontent.com/57824016/224212736-dba5c117-3df0-4b16-b320-7d55d8f72897.png
+         alt="Ai"
     />
   </a>
-  <br>
-  Yor-san Discord Bot
+  
+  <br>Ai 愛 Discord Bot
   <br>
 </h1>
 
 <p align="center">
-  <a href="https://github.com/LynBean/Yor/pkgs/container/yor">
-    <img src="https://github.com/LynBean/Yor/actions/workflows/docker-image.yml/badge.svg" alt="Docker Image">
-  </a>
-  <a href="http://makeapullrequest.com">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
-  </a>
 </p>
 
 # Overview
 
-Yor is a *self-hosted bot* – meaning you will need to host and maintain your own instance.
-Yor is currently being created. In the future, there will be more features.
-
-**Modules:**
-
-- EpicGames
-- GPT-3
-- MyAnimeList (Search Anime, Manga, and more...)
+Ai is a *self-hosted bot* – meaning you will need to host and maintain your own instance.
+Ai is currently being created. In the future, there will be more features.
