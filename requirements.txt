@@ -1,5 +1,0 @@
-aiohttp
-discord
-jikanpy-v4
-loguru
-openai
