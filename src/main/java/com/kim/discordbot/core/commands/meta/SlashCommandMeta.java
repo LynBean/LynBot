@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 @Target(ElementType.TYPE)
 public @interface SlashCommandMeta {
     @Nonnull String name();
-    @Nonnull String description() default "";
+    @Nonnull String description();
 
     Option[] options() default {};
 

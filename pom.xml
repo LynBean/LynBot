@@ -4,12 +4,19 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.0.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
   <groupId>com.kim</groupId>
   <artifactId>discordbot</artifactId>
-  <version>Snapshot</version>
+  <version>SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>lynbean</name>
+  <name>Ai Discord Bot</name>
+	<description>It&apos;s fun</description>
   <url>https://github.com/LynBean/Yor</url>
 
   <properties>
@@ -20,6 +27,17 @@
   </properties>
 
   <dependencies>
+
+    <dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 
     <dependency>
       <groupId>net.dv8tion</groupId>
@@ -52,9 +70,21 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.10.1</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.github.classgraph</groupId>
       <artifactId>classgraph</artifactId>
       <version>4.8.156</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.theokanning.openai-gpt3-java</groupId>
+      <artifactId>service</artifactId>
+      <version>0.11.0</version>
     </dependency>
 
   </dependencies>
@@ -82,6 +112,11 @@
             <source>19</source>
             <target>19</target>
           </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
         </plugin>
 
       </plugins>

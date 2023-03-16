@@ -1,12 +1,12 @@
 package com.kim.discordbot.cogs;
 
 import com.google.common.eventbus.Subscribe;
-import com.kim.discordbot.core.CommandRegistry;
 import com.kim.discordbot.core.commands.Cog;
+import com.kim.discordbot.core.commands.CommandRegistry;
 import com.kim.discordbot.core.commands.meta.SlashCommandMeta;
 import com.kim.discordbot.core.commands.SlashCommand;
-import com.kim.discordbot.core.commands.SlashCommandContext;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.JDA;
 
@@ -30,7 +30,7 @@ public class BotCogs {
     )
     public static class Bot extends SlashCommand {
         @Override
-        protected void process(SlashCommandContext context) {}
+        protected void process(SlashCommandInteractionEvent event) {}
 
         /**
          * This is a child command of the parent command "bot".
@@ -43,9 +43,11 @@ public class BotCogs {
         )
         public static class Ping extends SlashCommand {
             @Override
-            protected void process(SlashCommandContext context) {
-                JDA jda = context.getJDA();
-                context.reply("Pong! " + jda.getGatewayPing() + "ms");
+            protected void process(SlashCommandInteractionEvent event) {
+                JDA jda = event.getJDA();
+                event.getHook()
+                    .editOriginal("Pong! " + jda.getGatewayPing() + "ms")
+                    .queue();
             }
         }
 
@@ -55,17 +57,18 @@ public class BotCogs {
         )
         public static class Source extends SlashCommand {
             @Override
-            protected void process(SlashCommandContext context) {
-                EmbedBuilder embed = context.getBasicEmbedTemplate()
+            protected void process(SlashCommandInteractionEvent event) {
+                EmbedBuilder embed = new EmbedBuilder()
+                    .setAuthor(event.getUser().getName())
                     .setDescription(
                         "I'm open source!"
                     )
                     .setFooter("Made with ❤ by LynBean")
-                    .setThumbnail(context.getSelfUser().getEffectiveAvatarUrl());
+                    .setThumbnail(event.getUser().getEffectiveAvatarUrl());
 
-                context.getEvent()
-                    .replyEmbeds(embed.build())
-                    .addActionRow(
+                event.getHook()
+                    .editOriginalEmbeds(embed.build())
+                    .setActionRow(
                         Button.link("https://github.com/LynBean/Yor", "GitHub.com")
                     )
                     .queue();

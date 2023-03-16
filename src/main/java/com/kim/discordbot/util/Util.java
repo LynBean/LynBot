@@ -1,6 +1,13 @@
 package com.kim.discordbot.util;
 
 import com.google.common.io.CharStreams;
+import com.google.gson.Gson;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
+import okhttp3.OkHttpClient;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -9,7 +16,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.lang.annotation.Annotation;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -17,12 +28,24 @@ public class Util {
     private static final Logger log = BotLogger.getLogger(Util.class);
     public static final Path APPDATA = Path.of("data");
 
+    public static OkHttpClient getHttpClient() {
+        return new OkHttpClient();
+    }
+
+    public static Gson getGson() {
+        return new Gson();
+    }
+
     public static File validFile(String filename) {
         return APPDATA.toAbsolutePath().resolve(filename).toFile();
     }
 
-    public static File validFile(String filename, Path inFolderPath) {
-        return APPDATA.toAbsolutePath().resolve(inFolderPath).toFile();
+    public static File validFile(String filename, String... subdirs) {
+        Path path = APPDATA.toAbsolutePath();
+        for (String subdir : subdirs) {
+            path = path.resolve(subdir);
+        }
+        return path.resolve(filename).toFile();
     }
 
     public static InputStream loadResources(@NotNull Object clazz, String filename) {
@@ -77,6 +100,19 @@ public class Util {
         } catch (IOException e) {
             log.error(e.getMessage());
             return null;
+        }
+    }
+
+    public static Set<Class<?>> lookForAnnotatedOn(String packageName, Class<? extends Annotation> annotation) {
+        ClassGraph classGraph = new ClassGraph()
+            .acceptPackages(packageName)
+            .enableAnnotationInfo();
+
+        try (ScanResult scanResult = classGraph.scan(3)) {
+            return scanResult.getAllClasses()
+                .stream()
+                .filter(classInfo -> classInfo.hasAnnotation(annotation.getName())).map(ClassInfo::loadClass)
+                .collect(Collectors.toSet());
         }
     }
 }

@@ -10,6 +10,7 @@
   
   <br>Ai 愛 Discord Bot
   <br>
+  [![CodeFactor](https://www.codefactor.io/repository/github/lynbean/ai/badge)](https://www.codefactor.io/repository/github/lynbean/ai)
 </h1>
 
 <p align="center">
