@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public class ConfigManager {
-    private static Map<String, String> configMap = new HashMap<>();
+    private volatile static Map<String, String> configMap = new HashMap<>();
 
     public static void registerProperties(Properties properties) {
         for (String key : properties.stringPropertyNames()) {

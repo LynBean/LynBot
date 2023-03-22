@@ -1,5 +1,7 @@
-package com.kim.discordbot.core.commands;
+package com.kim.discordbot.core.commands.manager;
 
+import com.kim.discordbot.core.commands.ContextCommand;
+import com.kim.discordbot.core.commands.SlashCommand;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,8 +13,16 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public class CommandManager {
+    private final Map<String, ContextCommand> contextCommands = new HashMap<>();
     private final Map<String, SlashCommand> slashCommands = new HashMap<>();
     private final List<CommandData> slashCommandDatas = new ArrayList<>();
+
+    /**
+     * Returns an unmodifiable map of all registered context commands.
+     */
+    public Map<String, ContextCommand> getContextCommands() {
+        return Collections.unmodifiableMap(contextCommands);
+    }
 
     /**
      * Returns an unmodifiable map of all registered slash commands.
@@ -40,6 +50,35 @@ public class CommandManager {
     }
 
     /**
+     * Registers a context command.
+     */
+    public <T extends ContextCommand> T registerContextCommand(@Nonnull Class<T> clazz) {
+        return registerContextCommand(instantiate(clazz));
+    }
+
+    private <T extends ContextCommand> T registerContextCommand(@Nonnull T command) {
+        if (contextCommands.putIfAbsent(command.getName(), command) != null) {
+            throw new IllegalArgumentException("Context Command with name " + command.getName() + " already exists");
+        }
+
+        registerSubContextCommands(command);
+        contextCommands.put(command.getName(), command);
+        return command;
+    }
+
+    private static void registerSubContextCommands(ContextCommand command) {
+        for (var inner : command.getClass().getDeclaredClasses()) {
+            if (!Modifier.isStatic(inner.getModifiers())) continue;
+            if (!ContextCommand.class.isAssignableFrom(inner)) continue;
+            if (inner.isLocalClass() || inner.isAnonymousClass()) continue;
+            if (Modifier.isAbstract(inner.getModifiers())) continue;
+
+            var subCommand = (ContextCommand) instantiate(inner);
+            command.addSubCommand(subCommand);
+        }
+    }
+
+    /**
      * Registers a slash command.
      */
     public <T extends SlashCommand> T registerSlashCommand(@Nonnull Class<T> clazz) {
@@ -48,7 +87,7 @@ public class CommandManager {
 
     private <T extends SlashCommand> T registerSlashCommand(@Nonnull T command) {
         if (slashCommands.putIfAbsent(command.getName(), command) != null) {
-            throw new IllegalArgumentException("Command with name " + command.getName() + " already exists");
+            throw new IllegalArgumentException("Slash Command with name " + command.getName() + " already exists");
         }
 
         registerSubSlashCommands(command);
@@ -74,7 +113,7 @@ public class CommandManager {
             if (inner.isLocalClass() || inner.isAnonymousClass()) continue;
             if (Modifier.isAbstract(inner.getModifiers())) continue;
 
-            var subCommand = (SlashCommand)instantiate(inner);
+            var subCommand = (SlashCommand) instantiate(inner);
             command.addSubCommand(subCommand);
         }
     }

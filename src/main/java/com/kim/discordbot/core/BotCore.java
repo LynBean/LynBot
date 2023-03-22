@@ -2,10 +2,12 @@ package com.kim.discordbot.core;
 
 import com.google.common.eventbus.EventBus;
 import com.kim.discordbot.core.commands.Cog;
-import com.kim.discordbot.core.commands.CommandProcessor;
+import com.kim.discordbot.core.commands.processor.CommandProcessor;
 import com.kim.discordbot.core.database.BotConfig;
 import com.kim.discordbot.core.database.ConfigManager;
-import com.kim.discordbot.core.listeners.SlashCommandInteractionListener;
+import com.kim.discordbot.core.listeners.command.ContextCommandListener;
+import com.kim.discordbot.core.listeners.command.SlashCommandInteractionListener;
+import com.kim.discordbot.core.thread.ThreadController;
 import com.kim.discordbot.util.BotLogger;
 import com.kim.discordbot.util.Util;
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
@@ -30,6 +33,7 @@ import org.slf4j.Logger;
 public class BotCore {
     private final EventBus eventBus = new EventBus();
     private final static Logger log = BotLogger.getLogger(BotCore.class);
+    private static CountDownLatch latch;
 
     private DefaultShardManagerBuilder shardManagerBuilder;
     private final static BotConfig botConfig = new BotConfig();
@@ -78,18 +82,29 @@ public class BotCore {
 
     public void start() throws InvalidTokenException, InterruptedException {
         // Pre load procedures
-        BotThreadWorker preLoad = new BotThreadWorker(preLoadProcedures());
-        preLoad.start();
-        preLoad.getLatch().await();
+        latch = new CountDownLatch(1);
+        ThreadController.eventExecutor.execute(
+            () -> {
+                preLoadProcedures();
+                latch.countDown();
+            }
+        );
+        latch.await();
 
         // Fire up the shards and wait for all the shards to be ready
         shardManager = shardManagerBuilder.build();
-        shardReadyListener.setLatch(new CountDownLatch(shardManager.getShardsTotal()));
-        shardReadyListener.getLatch().await();
+        latch = new CountDownLatch(shardManager.getShardsTotal());
+        latch.await();
 
         // Post load procedures
-        new BotThreadWorker(postLoadProcedures())
-            .start();
+        latch = new CountDownLatch(1);
+        ThreadController.eventExecutor.execute(
+            () -> {
+                postLoadProcedures();
+                latch.countDown();
+            }
+        );
+        latch.await();
     }
 
     /**
@@ -117,115 +132,84 @@ public class BotCore {
             ConfigManager.get("bot-token"),
             getGateways()
         )
+            .addEventListeners(shardReadyListener)
+            .enableCache(getCacheFlags())
             .setChunkingFilter(ChunkingFilter.NONE)
             .setMemberCachePolicy(MemberCachePolicy.ALL)
-            .enableCache(getCacheFlags())
-            .addEventListeners(shardReadyListener)
             .setShardsTotal(getShardCount());
     }
 
-    private Runnable preLoadProcedures() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                log.info("Running pre load procedures");
+    private void preLoadProcedures() {
+        log.info("Running pre load procedures");
 
-                // Register bot config properties into ConfigManager
-                ConfigManager.registerProperties(botConfig.getProperties());
+        // Register bot config properties into ConfigManager
+        ConfigManager.registerProperties(botConfig.getProperties());
 
-                shardManagerBuilder = getShardManagerBuilder();
+        shardManagerBuilder = getShardManagerBuilder();
 
-                // Register commands package
-                if (commandsPackage == null) {
-                    log.warn("No commands package set, no commands will be loaded");
-                    return;
-                }
+        // Register commands package
+        if (commandsPackage == null) {
+            log.warn("No commands package set, no commands will be loaded");
+            return;
+        }
 
-                Set<Class<?>> cogs = Util.lookForAnnotatedOn(commandsPackage, Cog.class);
-                if (cogs.isEmpty()){
-                    log.warn("No commands found in package: {}", commandsPackage);
-                    return;
-                }
+        Set<Class<?>> cogs = Util.lookForAnnotatedOn(commandsPackage, Cog.class);
+        if (cogs.isEmpty()){
+            log.warn("No commands found in package: {}", commandsPackage);
+            return;
+        }
 
-                for (Class<?> cog : cogs) {
-                    try {
-                        eventBus.register(cog.getDeclaredConstructor().newInstance());
-                    } catch (Exception e) {
-                        log.error("Error while registering commands for cog: {}\n{}", cog.getName(), e);
-                    }
-                };
-                new Thread(() -> eventBus.post(CommandProcessor.REGISTRY))
-                    .start();
-
-                shardManagerBuilder.addEventListenerProvider(
-                    (shardId) -> new SlashCommandInteractionListener(commandProcessor)
-                );
+        for (Class<?> cog : cogs) {
+            try {
+                log.info("Registering commands for cog: {}", cog.getName());
+                eventBus.register(cog.getDeclaredConstructor().newInstance());
+            } catch (Exception e) {
+                log.error("Error while registering commands for cog: {}\n{}", cog.getName(), e);
             }
         };
+
+        ThreadController.eventExecutor.execute(
+            () -> eventBus.post(CommandProcessor.REGISTRY)
+        );
+
+        shardManagerBuilder.addEventListenerProviders(
+            List.of(
+                shardId -> new SlashCommandInteractionListener(commandProcessor, ThreadController.commandExecutor),
+                shardId -> new ContextCommandListener(commandProcessor, ThreadController.commandExecutor)
+            )
+        );
     }
 
-    private Runnable postLoadProcedures() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                log.info("Running post load procedures");
+    private void postLoadProcedures() {
+        log.info("Running post load procedures");
 
-                // Register slash commands
-                syncSlashCommands(
-                    CommandProcessor.REGISTRY.MANAGER.getSlashCommandDatas()
-                );
-            }
-        };
+        // Register slash commands
+        syncSlashCommands(
+            CommandProcessor.REGISTRY.MANAGER.getSlashCommandDatas()
+        );
     }
 
     private void syncSlashCommands(@Nonnull List<CommandData> commands) {
-        log.info("Syncing slash commands with Discord API");
+        String title = String.format("Registering a total of {} slash commands: ", commands.size());
+        log.info(title + String.join(
+            ", ",
+            commands.stream()
+                .map(CommandData::getName)
+                .collect(Collectors.toList())
+            ),
+            commands.size()
+        );
         for (JDA jda : shardManager.getShards()) {
             jda.updateCommands().addCommands(commands).queue();
+            log.info("Registered {} slash commands for shard {}", commands.size(), jda.getShardInfo().getShardId());
         }
     }
 
     private static class ShardReadyListener extends ListenerAdapter {
-        private CountDownLatch latch;
-
-        public void setLatch(CountDownLatch latch) {
-            this.latch = latch;
-        }
-
-        public CountDownLatch getLatch() {
-            return latch;
-        }
-
         @Override
         public void onReady(@Nonnull ReadyEvent event) {
             log.info("Shard {} is ready", event.getJDA().getShardInfo().getShardId());
             latch.countDown();
-        }
-    }
-
-    public class BotThreadWorker extends Thread {
-        private final Runnable runnable;
-        private final CountDownLatch latch;
-
-        public BotThreadWorker(Runnable runnable) {
-            this(runnable, new CountDownLatch(1));
-        }
-
-        public BotThreadWorker(Runnable runnable, CountDownLatch latch) {
-            this.runnable = runnable;
-            this.latch = latch;
-            this.setName(runnable.toString());
-        }
-
-        public CountDownLatch getLatch() {
-            return latch;
-        }
-
-        @Override
-        public void run() {
-            runnable.run();
-            latch.countDown();
-            log.info("Thread {} finished", Thread.currentThread().getName());
         }
     }
 

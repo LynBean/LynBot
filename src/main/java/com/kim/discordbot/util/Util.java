@@ -2,12 +2,10 @@ package com.kim.discordbot.util;
 
 import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
-
+import com.kim.discordbot.core.database.ConfigManager;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
-import okhttp3.OkHttpClient;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -18,9 +16,11 @@ import java.io.IOException;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import okhttp3.OkHttpClient;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -34,6 +34,25 @@ public class Util {
 
     public static Gson getGson() {
         return new Gson();
+    }
+
+    public static List<String> getBotPrefixes() {
+        String[] rawStrings = ConfigManager.get("prefix")
+            .split(",");
+
+        return List.of(rawStrings);
+    }
+
+    public static byte[] URLtoByteArray(String url) throws IOException {
+        return IOUtils.toByteArray(getHttpClient().newCall(
+            new okhttp3.Request.Builder()
+                .url(url)
+                .build()
+            )
+                .execute()
+                .body()
+                .byteStream()
+        );
     }
 
     public static File validFile(String filename) {
