@@ -21,7 +21,7 @@ GPT_DEFAULT_CONFIG = {
         "presence_penalty": 0,
         "temperature": 0.9,
         "top_p": 1,
-        "engine": "gpt-4",
+        "engine": "gpt-3.5-turbo",
         "engines": [
             "code-davinci-002",
             "gpt-3.5-turbo-0301",
