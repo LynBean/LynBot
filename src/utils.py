@@ -38,13 +38,13 @@ def app_path() -> PathLike[str]:
     """
     uname = platform.system()
     if uname == 'Windows':
-        return join(os.environ['APPDATA'], 'Kim', 'Yor')
+        return join(os.environ['APPDATA'], 'Kim', 'LynBot')
     elif uname == 'Linux':
-        return join(os.environ['HOME'], '.kim', 'yor')
+        return join(os.environ['HOME'], '.kim', 'lynbot')
     elif uname == 'Darwin':
-        return join(os.environ['HOME'], 'Library', 'Application Support', 'Kim', 'Yor')
+        return join(os.environ['HOME'], 'Library', 'Application Support', 'Kim', 'LynBot')
     else:
-        return join(os.getcwd(), '.kim', 'yor')
+        return join(os.getcwd(), '.kim', 'lynbot')
 
 def make_dir(dir_name: str=MISSING) -> PathLike[str]:
     """Generates a directory if it does not exist.
