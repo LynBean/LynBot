@@ -1,6 +1,6 @@
 FROM python:3.10-alpine
-# For https://github.com/users/LynBean/packages/container/package/Yor
-LABEL org.opencontainers.image.source https://github.com/LynBean/Yor
+# For https://github.com/users/LynBean/packages/container/package/LynBot
+LABEL org.opencontainers.image.source https://github.com/LynBean/LynBot
 
 # Install basic cli tools
 RUN apk update
