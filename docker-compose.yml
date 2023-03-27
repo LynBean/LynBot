@@ -2,16 +2,16 @@ version: "3.9"
 
 services:
 
-  yor:
+  lynbot:
 
-    container_name: yor
+    container_name: lynbot
 
-    image: ghcr.io/lynbean/yor:latest
+    image: ghcr.io/lynbean/lynbot:latest
 
     restart: always
 
     volumes:
-      - data:/root/.kim/yor
+      - data:/root/.kim/lynbot
 
     environment:
       DISCORD_TOKEN: "INSERT BOT TOKEN HERE"
