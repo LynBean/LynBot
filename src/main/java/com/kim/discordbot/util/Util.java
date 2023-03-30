@@ -1,7 +1,7 @@
 package com.kim.discordbot.util;
 
 import com.google.common.io.CharStreams;
-import com.google.gson.Gson;
+import com.kim.discordbot.Bot;
 import com.kim.discordbot.core.database.ConfigManager;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -30,10 +30,6 @@ public class Util {
 
     public static OkHttpClient getHttpClient() {
         return new OkHttpClient();
-    }
-
-    public static Gson getGson() {
-        return new Gson();
     }
 
     public static List<String> getBotPrefixes() {
@@ -67,16 +63,16 @@ public class Util {
         return path.resolve(filename).toFile();
     }
 
-    public static InputStream loadResources(@NotNull Object clazz, String filename) {
-        InputStream input = clazz.getClass().getResourceAsStream(filename);
+    public static InputStream loadResources(String filename) {
+        InputStream input = Bot.class.getResourceAsStream(filename);
         if (input == null) {
             return null;
         }
         return input;
     }
 
-    public static String loadResourcesAsString(@NotNull Object clazz, String filename) {
-        InputStream input = loadResources(clazz, filename);
+    public static String loadResourcesAsString(String filename) {
+        InputStream input = loadResources(filename);
         if (input == null) {
             return null;
         }

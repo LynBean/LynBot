@@ -1,58 +1,46 @@
 package com.kim.discordbot.cogs.gpt.image;
 
 import com.kim.discordbot.cogs.gpt.common.BotCompletionBuilder;
-import com.kim.discordbot.core.database.ConfigManager;
 import com.theokanning.openai.image.CreateImageRequest;
-import com.theokanning.openai.image.CreateImageRequest.CreateImageRequestBuilder;
+import com.theokanning.openai.service.OpenAiService;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@AllArgsConstructor
-@Builder
 @Data
 @EqualsAndHashCode(callSuper = true)
+@ToString
 public class BotImageCompletion extends BotCompletionBuilder {
-    private @Builder.Default int n = Integer.parseInt(ConfigManager.get("image-n"));
-    private @Builder.Default String size = ConfigManager.get("image-size");
+    private String prompt;
+    private String userId;
+    private int n;
+    private String size;
 
-    private @Builder.Default List<String> imageUrls = new ArrayList<>();
+    private List<String> imageUrls = new ArrayList<>();
 
-    private CreateImageRequestBuilder requestBuilder() {
-        if (!isValidArgs())
-            throw new IllegalArgumentException("Invalid arguments");
+    public BotImageCompletion(OpenAiService service, ExecutorService executor, String prompt, String userId) {
+        super(service, executor);
+        this.prompt = prompt;
+        this.userId = userId;
+    }
 
-        return CreateImageRequest.builder()
-            .prompt(this.getPrompt())
+    @Override
+    protected void process() {
+        CreateImageRequest request = CreateImageRequest.builder()
+            .prompt(prompt)
             .n(n)
             .size(size)
-            .user(this.getUser());
-    }
-
-    @Override
-    public void buildRequest() {
-        CreateImageRequest request = requestBuilder()
+            .user(userId)
             .build();
 
-        this.setThread(new Thread(() -> {
-            this.getService()
-                .createImage(request)
-                .getData()
-                .stream()
-                .forEach(image -> imageUrls.add(image.getUrl()));
+        service.createImage(request)
+            .getData()
+            .stream()
+            .forEach(image -> imageUrls.add(image.getUrl()));
 
-            this.getLatch().countDown();
-        }));
-    }
-
-    @Override
-    public void runRequest() {
-        if (this.getThread() == null)
-            buildRequest();
-
-        this.getThread().start();
+        completionLatch.countDown();
     }
 }

@@ -38,9 +38,13 @@ public abstract class SlashCommand {
                     option.type(), option.name(), option.description(), option.required()
                 );
 
-                if (data.getType() == OptionType.INTEGER || data.getType() == OptionType.NUMBER)
-                    data.setMinValue(option.minValues())
-                        .setMaxValue(option.maxValues());
+                if (data.getType() == OptionType.INTEGER)
+                    data.setMinValue(option.minIntValues())
+                        .setMaxValue(option.maxIntValues());
+
+                if (data.getType() == OptionType.NUMBER)
+                    data.setMinValue(option.minDoubleValues())
+                        .setMaxValue(option.maxDoubleValues());
 
                 if (option.choices().length > 0 && data.getType().canSupportChoices()) {
                     for (var choice : option.choices()) {

@@ -1,13 +1,16 @@
 package com.kim.discordbot.core.commands;
 
+import com.kim.discordbot.Bot;
 import com.kim.discordbot.core.commands.manager.CommandManager;
 import com.kim.discordbot.core.database.ConfigManager;
 import com.kim.discordbot.util.BotLogger;
+import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.JDA;
 import org.slf4j.Logger;
 
 public class CommandRegistry {
@@ -63,5 +66,16 @@ public class CommandRegistry {
      */
     public void registerConfigProperties(Properties properties) {
         ConfigManager.registerProperties(properties);
+    }
+
+    public void registerEventListeners(@Nonnull Object... listener) {
+        List<JDA> jdas = Bot.getInstance()
+            .getBotCore()
+            .getShardManager()
+            .getShards();
+
+        for (JDA jda : jdas) {
+            jda.addEventListener(listener);
+        }
     }
 }

@@ -3,74 +3,53 @@ package com.kim.discordbot.cogs.gpt.edit;
 import com.kim.discordbot.cogs.gpt.common.BotCompletionBuilder;
 import com.kim.discordbot.core.database.ConfigManager;
 import com.theokanning.openai.edit.EditRequest;
-import com.theokanning.openai.edit.EditRequest.EditRequestBuilder;
+import com.theokanning.openai.service.OpenAiService;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@AllArgsConstructor
-@Builder
 @Data
 @EqualsAndHashCode(callSuper=true)
+@ToString
 public class BotEditCompletion extends BotCompletionBuilder {
-    private @Builder.Default String model = ConfigManager.get("edit-model");
-    private @Builder.Default int n = Integer.parseInt(ConfigManager.get("edit-n"));
-    private @Builder.Default Double temperature = Double.parseDouble(ConfigManager.get("edit-temperature"));
-    private @Builder.Default Double topP = Double.parseDouble(ConfigManager.get("chat-top-p"));
+    private String input;
+    private String model = ConfigManager.get("edit-model");
+    private int n = Integer.parseInt(ConfigManager.get("edit-n"));
+    private double temperature = Double.parseDouble(ConfigManager.get("edit-temperature"));
+    private double topP = Double.parseDouble(ConfigManager.get("chat-top-p"));
 
     private String instruction;
-    private @Builder.Default List<String> response = new ArrayList<>();
+    private List<String> response = new ArrayList<>();
 
-    @Override
-    public Boolean isValidArgs() {
-        return !(
-            getService() == null ||
-            getPrompt() == null ||
-            this.instruction == null
-        );
+    public BotEditCompletion(OpenAiService service, ExecutorService executor, String input, String instruction) {
+        super(service, executor);
+        this.input = input;
+        this.instruction = instruction;
     }
 
-    private EditRequestBuilder requestBuilder() {
-        if (!isValidArgs())
-            throw new IllegalArgumentException("Invalid arguments");
-
-        return EditRequest.builder()
+    @Override
+    protected void process() {
+        EditRequest request = EditRequest.builder()
             .model(model)
-            .input(this.getPrompt())
+            .input(input)
             .instruction(instruction)
             .n(n)
             .temperature(temperature)
-            .topP(topP);
-    }
-
-    @Override
-    public void buildRequest() {
-        EditRequest request = requestBuilder()
+            .topP(topP)
             .build();
 
-        this.setThread(new Thread(() -> {
-            this.getService()
-                .createEdit(request)
-                .getChoices()
-                .stream()
-                .forEach(
-                    (choice) -> this.response.add(
-                        choice.getText()
-                    )
-                );
+        service.createEdit(request)
+            .getChoices()
+            .stream()
+            .forEach(
+                (choice) -> this.response.add(
+                    choice.getText()
+                )
+            );
 
-            this.getLatch().countDown();
-        }));
-    }
-
-    @Override
-    public void runRequest() {
-        if (this.getThread() == null)
-            buildRequest();
-
-        this.getThread().start();
+        completionLatch.countDown();
     }
 }

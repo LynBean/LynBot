@@ -33,13 +33,12 @@ import org.slf4j.Logger;
 public class BotCore {
     private final EventBus eventBus = new EventBus();
     private final static Logger log = BotLogger.getLogger(BotCore.class);
-    private static CountDownLatch latch;
 
     private DefaultShardManagerBuilder shardManagerBuilder;
     private final static BotConfig botConfig = new BotConfig();
     private final static CommandProcessor commandProcessor = new CommandProcessor();
     private final static ShardReadyListener shardReadyListener = new ShardReadyListener();
-    private ShardManager shardManager;
+    private static ShardManager shardManager;
     private String commandsPackage = "com.kim.discordbot.cogs";
 
     private @Nonnull Collection<GatewayIntent> getGateways() {
@@ -81,30 +80,8 @@ public class BotCore {
     }
 
     public void start() throws InvalidTokenException, InterruptedException {
-        // Pre load procedures
-        latch = new CountDownLatch(1);
-        ThreadController.eventExecutor.execute(
-            () -> {
-                preLoadProcedures();
-                latch.countDown();
-            }
-        );
-        latch.await();
-
-        // Fire up the shards and wait for all the shards to be ready
-        shardManager = shardManagerBuilder.build();
-        latch = new CountDownLatch(shardManager.getShardsTotal());
-        latch.await();
-
-        // Post load procedures
-        latch = new CountDownLatch(1);
-        ThreadController.eventExecutor.execute(
-            () -> {
-                postLoadProcedures();
-                latch.countDown();
-            }
-        );
-        latch.await();
+        preLoadProcedures();
+        postLoadProcedures();
     }
 
     /**
@@ -139,13 +116,31 @@ public class BotCore {
             .setShardsTotal(getShardCount());
     }
 
+    private void fireShards() {
+        shardManagerBuilder = getShardManagerBuilder();
+        shardManagerBuilder.addEventListenerProviders(
+            List.of(
+                shardId -> new SlashCommandInteractionListener(commandProcessor, ThreadController.commandExecutor),
+                shardId -> new ContextCommandListener(commandProcessor, ThreadController.commandExecutor)
+            )
+        );
+
+        // Fire up the shards and wait for all the shards to be ready
+        shardManager = shardManagerBuilder.build();
+        try {
+            shardReadyListener.awaitShardsReady();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void preLoadProcedures() {
         log.info("Running pre load procedures");
 
         // Register bot config properties into ConfigManager
         ConfigManager.registerProperties(botConfig.getProperties());
 
-        shardManagerBuilder = getShardManagerBuilder();
+        fireShards();
 
         // Register commands package
         if (commandsPackage == null) {
@@ -154,30 +149,36 @@ public class BotCore {
         }
 
         Set<Class<?>> cogs = Util.lookForAnnotatedOn(commandsPackage, Cog.class);
+
         if (cogs.isEmpty()){
             log.warn("No commands found in package: {}", commandsPackage);
             return;
         }
 
+        final CountDownLatch preLoadLatch = new CountDownLatch(cogs.size());
+
         for (Class<?> cog : cogs) {
-            try {
-                log.info("Registering commands for cog: {}", cog.getName());
-                eventBus.register(cog.getDeclaredConstructor().newInstance());
-            } catch (Exception e) {
-                log.error("Error while registering commands for cog: {}\n{}", cog.getName(), e);
-            }
+            ThreadController.eventExecutor.execute(
+                () -> {
+                    try {
+                        log.info("Registering commands for cog: {}", cog.getName());
+                        eventBus.register(cog.getDeclaredConstructor().newInstance());
+                    } catch (Exception e) {
+                        log.error("Error while registering commands for cog: {}\n{}", cog.getName(), e);
+                    } finally {
+                        preLoadLatch.countDown();
+                    }
+                }
+            );
         };
 
-        ThreadController.eventExecutor.execute(
-            () -> eventBus.post(CommandProcessor.REGISTRY)
-        );
+        try {
+            preLoadLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-        shardManagerBuilder.addEventListenerProviders(
-            List.of(
-                shardId -> new SlashCommandInteractionListener(commandProcessor, ThreadController.commandExecutor),
-                shardId -> new ContextCommandListener(commandProcessor, ThreadController.commandExecutor)
-            )
-        );
+        eventBus.post(CommandProcessor.REGISTRY);
     }
 
     private void postLoadProcedures() {
@@ -209,7 +210,12 @@ public class BotCore {
         @Override
         public void onReady(@Nonnull ReadyEvent event) {
             log.info("Shard {} is ready", event.getJDA().getShardInfo().getShardId());
-            latch.countDown();
+        }
+
+        public void awaitShardsReady() throws InterruptedException {
+            while (shardManager.getShardsQueued() > 0) {
+                Thread.sleep(1000);
+            }
         }
     }
 

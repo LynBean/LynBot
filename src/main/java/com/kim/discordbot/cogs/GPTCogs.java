@@ -3,6 +3,7 @@ package com.kim.discordbot.cogs;
 import com.google.common.eventbus.Subscribe;
 import com.kim.discordbot.cogs.gpt.chat.BotChatCompletion;
 import com.kim.discordbot.cogs.gpt.core.GPTApplication;
+import com.kim.discordbot.cogs.gpt.edit.BotEditCompletion;
 import com.kim.discordbot.cogs.gpt.image.BotImageCompletion;
 import com.kim.discordbot.cogs.gpt.image.ImageComposer;
 import com.kim.discordbot.cogs.gpt.util.GPTUtil;
@@ -13,6 +14,8 @@ import com.kim.discordbot.core.commands.meta.ContextCommandMeta;
 import com.kim.discordbot.core.commands.meta.SlashCommandMeta;
 import com.kim.discordbot.core.commands.SlashCommand;
 import com.kim.discordbot.core.database.ConfigManager;
+import com.kim.discordbot.core.thread.ThreadController;
+import com.kim.discordbot.util.BotLogger;
 import com.kim.discordbot.util.Util;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +27,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -32,14 +36,21 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.utils.FileUpload;
+import org.slf4j.Logger;
 
 @Cog
 public class GPTCogs {
+    private static final Logger log = BotLogger.getLogger(GPTCogs.class);
     private static final GPTApplication app = new GPTApplication();
 
     @Subscribe
     public void register(CommandRegistry registry) {
-        registry.registerConfigProperties(app.getPropertiesConfig());
+        if (ConfigManager.get("openai-key") == null) {
+            log.warn("OpenAI key not found in config, skipping {} registration", GPTCogs.class.getSimpleName());
+            return;
+        }
+
+        registry.registerConfigProperties(app.getConfig().getProperties());
         registry.registerSlashCommand(GPT.class);
         registry.registerContextCommand(ContextChatGPT.class);
     }
@@ -49,7 +60,7 @@ public class GPTCogs {
         @Override
         protected void process(MessageReceivedEvent event, String rawContent) {
             Message message = event.getMessage();
-            String userID = event.getAuthor().getId();
+            User user = event.getAuthor();
 
             List<String> content = new ArrayList<>();
             content.add(rawContent);
@@ -72,7 +83,10 @@ public class GPTCogs {
                 content.add(attachments.toString());
             }
 
-            List<String> response = GPT.chatGptProcess(content.toString(), userID);
+            GPT.ChatGPT chatGPT = new GPT.ChatGPT();
+            chatGPT.content = content.toString();
+            chatGPT.user = user;
+            List<String> response = chatGPT.runGPT();
 
             for (String resp : response) {
                 List<String> trimmed = GPTUtil.trimMessage(resp, 2000);
@@ -125,7 +139,9 @@ public class GPTCogs {
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "frequency-penalty",
-                    description = "Number between -2.0 and 2.0. Positive values penalize new tokens."
+                    description = "Number between -2.0 and 2.0. Positive values penalize new tokens.",
+                    minDoubleValues = -2.0,
+                    maxDoubleValues = 2.0
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.INTEGER,
@@ -135,21 +151,37 @@ public class GPTCogs {
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "presence-penalty",
-                    description = "Number between -2.0 and 2.0. Positive values penalize new tokens."
+                    description = "Number between -2.0 and 2.0. Positive values penalize new tokens.",
+                    minDoubleValues = -2.0,
+                    maxDoubleValues = 2.0
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "temperature",
-                    description = "Try 0.9 for more creative applications, and 0 for ones with a well-defined answer."
+                    description = "Try 0.9 for more creative applications, and 0 for ones with a well-defined answer.",
+                    minDoubleValues = 0.0,
+                    maxDoubleValues = 2.0
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "top-p",
-                    description = "An alternative to sampling with temperature, called nucleus sampling."
+                    description = "An alternative to sampling with temperature, called nucleus sampling.",
+                    minDoubleValues = 0.0,
+                    maxDoubleValues = 1.0
                 )
             }
         )
         public static class ChatGPT extends SlashCommand {
+            private String content;
+            private String model;
+            private String role;
+            private Double frequencyPenalty;
+            private Integer maxTokens;
+            private Double presencePenalty;
+            private Double temperature;
+            private Double topP;
+            private User user;
+
             @Override
             protected void process(SlashCommandInteractionEvent event) {
                 OptionMapping contentOption = event.getOption("content");
@@ -161,11 +193,18 @@ public class GPTCogs {
                 OptionMapping temperatureOption = event.getOption("temperature");
                 OptionMapping topPOption = event.getOption("top-p");
 
-                String content = contentOption.getAsString();
-                String userID = event.getUser().getId();
+                content = contentOption.getAsString();
+                if (modelOption != null) model = modelOption.getAsString();
+                if (roleOption != null) role = roleOption.getAsString();
+                if (frequencyPenaltyOption != null) frequencyPenalty = frequencyPenaltyOption.getAsDouble();
+                if (maxTokensOption != null) maxTokens = maxTokensOption.getAsInt();
+                if (presencePenaltyOption != null) presencePenalty = presencePenaltyOption.getAsDouble();
+                if (temperatureOption != null) temperature = temperatureOption.getAsDouble();
+                if (topPOption != null) topP = topPOption.getAsDouble();
+                user = event.getUser();
 
                 MessageEmbed startEmbed = new EmbedBuilder()
-                    .setAuthor(event.getUser().getName() + " is asking for", null, event.getUser().getAvatarUrl())
+                    .setAuthor(user.getName() + " is asking for", null, user.getAvatarUrl())
                     .setTitle(content.length() >= 256 ? content.substring(0, 256) : content)
                     .setFooter(
                         "Powered by " +
@@ -181,25 +220,11 @@ public class GPTCogs {
                 final List<String> response;
 
                 try {
-                    response = chatGptProcess(
-                        content,
-                        (modelOption != null ? modelOption.getAsString() : null),
-                        (roleOption != null ? roleOption.getAsString() : null),
-                        (frequencyPenaltyOption != null ? frequencyPenaltyOption.getAsString() : null),
-                        (maxTokensOption != null ? maxTokensOption.getAsString() : null),
-                        (presencePenaltyOption != null ? presencePenaltyOption.getAsString() : null),
-                        (temperatureOption != null ? temperatureOption.getAsString() : null),
-                        (topPOption != null ? topPOption.getAsString() : null),
-                        userID
-                    );
-                } catch (RuntimeException e) {
+                    response = runGPT();
+                } catch (Exception e) {
                     event.getHook()
                         .sendMessageEmbeds(
-                            new EmbedBuilder()
-                                .setAuthor("Error", null, event.getUser().getAvatarUrl())
-                                .setTitle(e.getClass().getName())
-                                .setDescription(e.getMessage())
-                                .build()
+                            GPTUtil.exceptionEmbed(e, event)
                         )
                         .queue();
 
@@ -246,52 +271,36 @@ public class GPTCogs {
 
                 return super.optionDataEditor(data);
             }
-        }
 
-        private static List<String> chatGptProcess(String content, String userID) {
-            return chatGptProcess(
-                content, null, null, null,
-                null, null, null, null, userID
-            );
-        }
+            private List<String> runGPT() throws RuntimeException {
+                BotChatCompletion chat = new BotChatCompletion(
+                    app.getService(), ThreadController.commandExecutor, content, user.getId()
+                );
+                if (model != null) chat.setModel(model);
+                if (role != null) chat.setRole(role);
+                if (frequencyPenalty != null) chat.setFrequencyPenalty(frequencyPenalty);
+                if (maxTokens != null) chat.setMaxTokens(maxTokens);
+                if (presencePenalty != null) chat.setPresencePenalty(presencePenalty);
+                if (temperature != null) chat.setTemperature(temperature);
+                if (topP != null) chat.setTopP(topP);
 
-        private static List<String> chatGptProcess(
-            String content, String model, String role,
-            String frequencyPenalty, String maxTokens, String presencePenalty,
-            String temperature, String topP, String userID
-        ) throws RuntimeException {
-            BotChatCompletion chat = BotChatCompletion.builder()
-                .build();
+                final Throwable[] throwable = new Throwable[1];
+                chat.setUncaughtExceptionHandler(
+                    (t, e) -> {
+                        throwable[0] = e;
+                        log.debug(e.getMessage());
+                    }
+                );
 
-            chat.setService(app.getService());
-            chat.setPrompt(content);
+                chat.run();
+                chat.await();
+                log.debug(chat.toString());
 
-            if (model != null)
-                chat.setModel(model);
-            if (role != null)
-                chat.setRole(role);
-            if (frequencyPenalty != null)
-                chat.setFrequencyPenalty(Double.parseDouble(frequencyPenalty));
-            if (maxTokens != null)
-                chat.setMaxTokens(Integer.parseInt(maxTokens));
-            if (presencePenalty != null)
-                chat.setPresencePenalty(Double.parseDouble(presencePenalty));
-            if (temperature != null)
-                chat.setTemperature(Double.parseDouble(temperature));
-            if (topP != null)
-                chat.setTopP(Double.parseDouble(topP));
+                if (throwable[0] != null)
+                    throw new RuntimeException(throwable[0]);
 
-            chat.setUser(userID);
-            chat.buildRequest();
-
-            chat.getThread().setUncaughtExceptionHandler((t, e) -> {
-                throw new RuntimeException(e);
-            });
-
-            chat.runRequest();
-            chat.await();
-
-            return chat.getResponse();
+                return chat.getResponse();
+            }
         }
 
         @SlashCommandMeta(
@@ -328,28 +337,32 @@ public class GPTCogs {
                     .editOriginalEmbeds(embed)
                     .complete();
 
-                BotImageCompletion image = BotImageCompletion.builder()
-                    .build();
+                BotImageCompletion image = new BotImageCompletion(
+                    app.getService(), ThreadController.commandExecutor, prompt, userID
+                );
 
-                image.setService(app.getService());
-                image.setPrompt(prompt);
-                image.setUser(userID);
                 image.setN(4);
                 image.setSize("1024x1024");
 
-                image.buildRequest();
+                final Throwable[] throwable = new Throwable[1];
+                image.setUncaughtExceptionHandler(
+                    (t, e) -> {
+                        log.debug(e.getMessage());
+                        throwable[0] = e;
+                        message.editMessageEmbeds(
+                            GPTUtil.exceptionEmbed((Exception) e, event)
+                        )
+                            .queue();
+                    }
+                );
 
-                image.getThread().setUncaughtExceptionHandler((t, e) -> {
-                    message.editMessageEmbeds(
-                        GPTUtil.exceptionEmbed((Exception) e, event)
-                    )
-                        .queue();
-
-                    return;
-                });
-
-                image.runRequest();
+                image.run();
                 image.await();
+
+                // If an exception was thrown, return
+                if (throwable[0] != null)
+                    return;
+
                 List<String> imageUrls = image.getImageUrls();
 
                 ImageComposer composer = ImageComposer.builder()
@@ -408,37 +421,122 @@ public class GPTCogs {
                 @SlashCommandMeta.Option(
                     type = OptionType.STRING,
                     name = "instruction",
-                    description = "The instruction that tells the model how to edit the prompt."
+                    description = "The instruction that tells the model how to edit the prompt.",
+                    required = true
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.STRING,
+                    name = "model",
+                    description = "ID of the model to use."
+                ),
+                @SlashCommandMeta.Option(
+                    type = OptionType.INTEGER,
                     name = "n",
-                    description = "How many edits to generate for the input and instruction."
+                    description = "How many edits to generate for the input and instruction.",
+                    minIntValues = 1,
+                    maxIntValues = 20
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "temperature",
-                    description = "Try 0.9 for more creative applications, and 0 for ones with a well-defined answer."
+                    description = "Try 0.9 for more creative applications, and 0 for ones with a well-defined answer.",
+                    minDoubleValues = 0.0,
+                    maxDoubleValues = 2.0
                 ),
                 @SlashCommandMeta.Option(
                     type = OptionType.NUMBER,
                     name = "top-p",
-                    description = "An alternative to sampling with temperature, called nucleus sampling."
+                    description = "An alternative to sampling with temperature, called nucleus sampling.",
+                    minDoubleValues = 0.0,
+                    maxDoubleValues = 1.0
                 )
             }
         )
         public static class EditGPT extends SlashCommand {
             @Override
             protected void process(SlashCommandInteractionEvent event) {
-                event.getHook()
-                    .editOriginalEmbeds(
-                        GPTUtil.exceptionEmbed(
-                            new UnsupportedOperationException("This command is not implemented yet."),
-                            event
-                        )
+                OptionMapping inputOption = event.getOption("input");
+                OptionMapping instructionOption = event.getOption("instruction");
+                OptionMapping nOption = event.getOption("n");
+                OptionMapping temperatureOption = event.getOption("temperature");
+                OptionMapping topPOption = event.getOption("top-p");
+
+                String input = inputOption.getAsString();
+                String instruction = instructionOption.getAsString();
+
+                MessageEmbed embed = new EmbedBuilder()
+                    .setAuthor(event.getUser().getName() + " is asking for", null, event.getUser().getAvatarUrl())
+                    .setTitle(instruction.length() >= 256 ? instruction.substring(0, 256) : instruction)
+                    .setDescription(input.length() >= 4096 ? input.substring(0, 4096) : input)
+                    .setFooter(
+                        "Powered by OpenAI",
+                        "https://openai.com/content/images/2022/05/openai-avatar.png"
                     )
-                    .queue();
-                // TODO: Implements this method
+                    .build();
+
+                event.getHook()
+                    .editOriginalEmbeds(embed)
+                    .complete();
+
+                BotEditCompletion edit = new BotEditCompletion(
+                    app.getService(), ThreadController.commandExecutor, input, instruction
+                );
+
+                if (nOption != null) edit.setN(nOption.getAsInt());
+                if (temperatureOption != null) edit.setTemperature(temperatureOption.getAsDouble());
+                if (topPOption != null) edit.setTopP(topPOption.getAsDouble());
+
+                final Throwable[] throwable = new Throwable[1];
+                edit.setUncaughtExceptionHandler(
+                    (t, e) -> {
+                        log.debug(e.getMessage());
+                        throwable[0] = e;
+                        event.getHook()
+                            .sendMessageEmbeds(
+                                GPTUtil.exceptionEmbed((Exception) e, event)
+                            )
+                            .queue();
+                    }
+                );
+
+                edit.run();
+                edit.await();
+
+                // If an exception was thrown, return
+                if (throwable[0] != null)
+                    return;
+
+                List<String> response = edit.getResponse();
+
+                for (int i = 0; i < response.size(); i++) {
+                    ListIterator<String> results = GPTUtil.trimMessage(response.get(i), 4096)
+                        .listIterator();
+
+                    while (results.hasNext()) {
+                        event.getHook()
+                            .sendMessageEmbeds(
+                                new EmbedBuilder()
+                                    .setDescription(results.next())
+                                    .build()
+                            )
+                            .queue();
+                    }
+                }
+            }
+
+            @Override
+            protected OptionData optionDataEditor(OptionData data) {
+                if (data.getName().equalsIgnoreCase("model") && data.getType().canSupportChoices()) {
+                    List.of(
+                        ConfigManager.get("edit-models")
+                            .split(",")
+                    )
+                        .stream()
+                        .map(String::trim)
+                        .forEach(model -> data.addChoice(model, model));
+                }
+
+                return super.optionDataEditor(data);
             }
         }
     }

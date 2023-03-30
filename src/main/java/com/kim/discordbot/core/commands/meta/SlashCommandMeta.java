@@ -4,7 +4,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
@@ -23,8 +22,10 @@ public @interface SlashCommandMeta {
         @Nonnull String name();
         @Nonnull String description();
         boolean required() default false;
-        @Nonnegative int minValues() default 1;
-        @Nonnegative int maxValues() default 1;
+        int minIntValues() default Integer.MIN_VALUE;
+        int maxIntValues() default Integer.MAX_VALUE;
+        double minDoubleValues() default -9007199254740991D;
+        double maxDoubleValues() default 9007199254740991D;
         @Nonnull Choice[] choices() default {};
     }
 

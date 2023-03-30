@@ -1,51 +1,62 @@
 package com.kim.discordbot.cogs.gpt.common;
 
+import com.kim.discordbot.util.BotLogger;
 import com.theokanning.openai.service.OpenAiService;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import lombok.Data;
-import lombok.experimental.SuperBuilder;
+import org.slf4j.Logger;
 
 @Data
-@SuperBuilder
 public abstract class BotCompletionBuilder {
-    private OpenAiService service;
+    protected Logger log = BotLogger.getLogger(BotCompletionBuilder.class);
+    protected CountDownLatch completionLatch;
+    protected ExecutorService executor;
+    protected OpenAiService service;
+    protected Thread thread;
+    protected Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
-    private String prompt;
-    private String user;
-
-    private Thread thread;
-    private CountDownLatch latch;
-
-    public BotCompletionBuilder() {
-        this.service = null;
-        this.prompt = null;
-        this.user = null;
-        this.latch = new CountDownLatch(1);
+    public BotCompletionBuilder(OpenAiService service, ExecutorService executor) {
+        this.service = service;
+        this.executor = executor;
     }
 
-    public void buildRequest() {}
-    public void runRequest() {}
+    protected abstract void process();
 
-    public Boolean isValidArgs() {
-        return !(
-            this.service == null ||
-            this.prompt == null ||
-            this.user == null
+    public void run() {
+        completionLatch = new CountDownLatch(1);
+        executor.execute(
+            () -> {
+                thread = Thread.currentThread();
+                thread.setUncaughtExceptionHandler(
+                    (t, e) -> {
+                        uncaughtExceptionHandler.uncaughtException(t, e);
+                        completionLatch.countDown();
+                    }
+                );
+
+                process();
+                completionLatch.countDown();
+            }
         );
     }
 
     public Boolean isRunning() {
-        if (thread == null)
-            return false;
+        return completionLatch.getCount() > 0 ? true : false;
+    }
 
-        return thread.isAlive();
+    public void stop() {
+        thread.interrupt();
     }
 
     public void await() {
+        if (completionLatch == null)
+            return;
+
         try {
-            latch.await();
+            completionLatch.await();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e.getMessage());
+            e.printStackTrace();
         }
     }
 }

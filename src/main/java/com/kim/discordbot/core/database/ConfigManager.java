@@ -24,10 +24,13 @@ public class ConfigManager {
         if (!configMap.containsKey(key)) {
             throw new IllegalArgumentException("Property with key " + key + " does not exist");
         }
-        return configMap.get(key);
+        if (configMap.get(key).strip().length() == 0) {
+            return null;
+        }
+        return configMap.get(key).strip();
     }
 
     public static String get(String key, String defaultValue) {
-        return configMap.getOrDefault(key, defaultValue);
+        return configMap.getOrDefault(key, defaultValue).strip();
     }
 }

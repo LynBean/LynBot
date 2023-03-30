@@ -1,6 +1,5 @@
 package com.kim.discordbot.util;
 
-import com.kim.discordbot.Bot;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,7 +48,7 @@ public abstract class Config {
 
     private void loadFromResource() {
         try {
-            properties.load(Util.loadResources(new Bot(), resourceFile));
+            properties.load(Util.loadResources(resourceFile));
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -58,7 +57,7 @@ public abstract class Config {
     private void dumpFile() {
         // TODO: Implement this method
     }
-    
+
     private void dumpFile(Boolean absence) {
         if (!absence) {
             dumpFile();
@@ -69,10 +68,10 @@ public abstract class Config {
             log.error("Resource file is not specified.");
             return;
         }
-        
-        String content = Util.loadResourcesAsString(new Bot(), resourceFile);
+
+        String content = Util.loadResourcesAsString(resourceFile);
         configFile.getParentFile().mkdirs();
-        
+
         try {
             Files.writeString(configFile.toPath(), content, StandardCharsets.UTF_8);
         } catch (IOException e) {
