@@ -10,14 +10,14 @@
     <version>3.0.4</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
-  <groupId>com.kim</groupId>
-  <artifactId>discordbot</artifactId>
-  <version>SNAPSHOT</version>
+  <groupId>io.github.lynbean</groupId>
+  <artifactId>lynbot</artifactId>
+  <version>*-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>Ai Discord Bot</name>
-  <description>It&apos;s fun</description>
-  <url>https://github.com/LynBean/Yor</url>
+  <name>LynBot</name>
+  <description>ElynLeong</description>
+  <url>https://github.com/LynBean/LynBot</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
