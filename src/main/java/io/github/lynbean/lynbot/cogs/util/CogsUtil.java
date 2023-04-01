@@ -1,14 +1,15 @@
-package io.github.lynbean.lynbot.cogs.gpt.util;
+package io.github.lynbean.lynbot.cogs.util;
 
-import io.github.lynbean.lynbot.util.Util;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.lynbean.lynbot.util.Util;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 
-public class GPTUtil extends Util{
-    public static MessageEmbed exceptionEmbed(Exception e, SlashCommandInteractionEvent event) {
+public class CogsUtil extends Util{
+    public static MessageEmbed exceptionEmbed(Exception e, GenericInteractionCreateEvent event) {
         return new EmbedBuilder()
             .setAuthor("Error", null, event.getUser().getAvatarUrl())
             .setTitle(e.toString())

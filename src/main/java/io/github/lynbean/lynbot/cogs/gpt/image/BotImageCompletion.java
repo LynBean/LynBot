@@ -1,11 +1,13 @@
 package io.github.lynbean.lynbot.cogs.gpt.image;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
 import com.theokanning.openai.image.CreateImageRequest;
 import com.theokanning.openai.service.OpenAiService;
+
 import io.github.lynbean.lynbot.cogs.gpt.common.BotCompletionBuilder;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

@@ -1,28 +1,32 @@
 package io.github.lynbean.lynbot.cogs;
 
-import com.google.common.eventbus.Subscribe;
-import io.github.lynbean.lynbot.cogs.gpt.chat.BotChatCompletion;
-import io.github.lynbean.lynbot.cogs.gpt.core.GPTApplication;
-import io.github.lynbean.lynbot.cogs.gpt.edit.BotEditCompletion;
-import io.github.lynbean.lynbot.cogs.gpt.image.BotImageCompletion;
-import io.github.lynbean.lynbot.cogs.gpt.image.ImageComposer;
-import io.github.lynbean.lynbot.cogs.gpt.util.GPTUtil;
-import io.github.lynbean.lynbot.core.commands.Cog;
-import io.github.lynbean.lynbot.core.commands.CommandRegistry;
-import io.github.lynbean.lynbot.core.commands.ContextCommand;
-import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
-import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
-import io.github.lynbean.lynbot.core.commands.SlashCommand;
-import io.github.lynbean.lynbot.core.database.ConfigManager;
-import io.github.lynbean.lynbot.core.thread.ThreadController;
-import io.github.lynbean.lynbot.util.BotLogger;
-import io.github.lynbean.lynbot.util.Util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+
+import org.slf4j.Logger;
+
+import com.google.common.eventbus.Subscribe;
+
+import io.github.lynbean.lynbot.cogs.gpt.chat.BotChatCompletion;
+import io.github.lynbean.lynbot.cogs.gpt.core.GPTApplication;
+import io.github.lynbean.lynbot.cogs.gpt.edit.BotEditCompletion;
+import io.github.lynbean.lynbot.cogs.gpt.image.BotImageCompletion;
+import io.github.lynbean.lynbot.cogs.gpt.image.ImageComposer;
+import io.github.lynbean.lynbot.cogs.util.CogsUtil;
+import io.github.lynbean.lynbot.core.commands.Cog;
+import io.github.lynbean.lynbot.core.commands.CommandRegistry;
+import io.github.lynbean.lynbot.core.commands.ContextCommand;
+import io.github.lynbean.lynbot.core.commands.SlashCommand;
+import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
+import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
+import io.github.lynbean.lynbot.core.database.ConfigManager;
+import io.github.lynbean.lynbot.core.thread.ThreadController;
+import io.github.lynbean.lynbot.util.BotLogger;
+import io.github.lynbean.lynbot.util.Util;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
@@ -30,13 +34,12 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.FileUpload;
-import org.slf4j.Logger;
 
 @Cog
 public class GPTCogs {
@@ -89,7 +92,7 @@ public class GPTCogs {
             List<String> response = chatGPT.runGPT();
 
             for (String resp : response) {
-                List<String> trimmed = GPTUtil.trimMessage(resp, 2000);
+                List<String> trimmed = CogsUtil.trimMessage(resp, 2000);
 
                 for (int i = 0; i < trimmed.size(); i++) {
                     if (i == 0) {
@@ -224,7 +227,7 @@ public class GPTCogs {
                 } catch (Exception e) {
                     event.getHook()
                         .sendMessageEmbeds(
-                            GPTUtil.exceptionEmbed(e, event)
+                            CogsUtil.exceptionEmbed(e, event)
                         )
                         .queue();
 
@@ -232,7 +235,7 @@ public class GPTCogs {
                 }
 
                 for (int i = 0; i < response.size(); i++) {
-                    ListIterator<String> results = GPTUtil.trimMessage(response.get(i), 4096)
+                    ListIterator<String> results = CogsUtil.trimMessage(response.get(i), 4096)
                         .listIterator();
 
                     while (results.hasNext()) {
@@ -350,7 +353,7 @@ public class GPTCogs {
                         log.debug(e.getMessage());
                         throwable[0] = e;
                         message.editMessageEmbeds(
-                            GPTUtil.exceptionEmbed((Exception) e, event)
+                            CogsUtil.exceptionEmbed((Exception) e, event)
                         )
                             .queue();
                     }
@@ -377,7 +380,7 @@ public class GPTCogs {
                     imageBytes = composer.writeImageToBytes();
                 } catch (IOException e) {
                     message.editMessageEmbeds(
-                        GPTUtil.exceptionEmbed((Exception) e, event)
+                        CogsUtil.exceptionEmbed((Exception) e, event)
                     )
                         .queue();
 
@@ -399,7 +402,7 @@ public class GPTCogs {
                         .queue();
                 } catch (Exception e) {
                     message.editMessageEmbeds(
-                        GPTUtil.exceptionEmbed((Exception) e, event)
+                        CogsUtil.exceptionEmbed((Exception) e, event)
                     )
                         .queue();
 
@@ -493,7 +496,7 @@ public class GPTCogs {
                         throwable[0] = e;
                         event.getHook()
                             .sendMessageEmbeds(
-                                GPTUtil.exceptionEmbed((Exception) e, event)
+                                CogsUtil.exceptionEmbed((Exception) e, event)
                             )
                             .queue();
                     }
@@ -509,7 +512,7 @@ public class GPTCogs {
                 List<String> response = edit.getResponse();
 
                 for (int i = 0; i < response.size(); i++) {
-                    ListIterator<String> results = GPTUtil.trimMessage(response.get(i), 4096)
+                    ListIterator<String> results = CogsUtil.trimMessage(response.get(i), 4096)
                         .listIterator();
 
                     while (results.hasNext()) {

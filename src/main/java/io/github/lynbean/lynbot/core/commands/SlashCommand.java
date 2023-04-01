@@ -1,17 +1,19 @@
 package io.github.lynbean.lynbot.core.commands;
 
-import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
+
+import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
 
 public abstract class SlashCommand {
     private Boolean deferReply = true;

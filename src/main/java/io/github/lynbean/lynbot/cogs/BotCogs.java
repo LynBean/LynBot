@@ -1,14 +1,15 @@
 package io.github.lynbean.lynbot.cogs;
 
 import com.google.common.eventbus.Subscribe;
+
 import io.github.lynbean.lynbot.core.commands.Cog;
 import io.github.lynbean.lynbot.core.commands.CommandRegistry;
-import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
 import io.github.lynbean.lynbot.core.commands.SlashCommand;
+import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.JDA;
 
 @Cog
 public class BotCogs {

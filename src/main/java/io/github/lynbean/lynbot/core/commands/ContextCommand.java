@@ -1,9 +1,11 @@
 package io.github.lynbean.lynbot.core.commands;
 
-import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
+
+import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public abstract class ContextCommand {

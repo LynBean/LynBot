@@ -1,8 +1,10 @@
 package io.github.lynbean.lynbot.core.listeners.command;
 
-import io.github.lynbean.lynbot.core.commands.processor.CommandProcessor;
 import java.util.concurrent.ExecutorService;
+
 import javax.annotation.Nonnull;
+
+import io.github.lynbean.lynbot.core.commands.processor.CommandProcessor;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;

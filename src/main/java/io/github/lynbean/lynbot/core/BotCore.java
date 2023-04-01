@@ -1,6 +1,18 @@
 package io.github.lynbean.lynbot.core;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+
 import com.google.common.eventbus.EventBus;
+
 import io.github.lynbean.lynbot.core.commands.Cog;
 import io.github.lynbean.lynbot.core.commands.processor.CommandProcessor;
 import io.github.lynbean.lynbot.core.database.BotConfig;
@@ -10,25 +22,17 @@ import io.github.lynbean.lynbot.core.listeners.command.SlashCommandInteractionLi
 import io.github.lynbean.lynbot.core.thread.ThreadController;
 import io.github.lynbean.lynbot.util.BotLogger;
 import io.github.lynbean.lynbot.util.Util;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.concurrent.CountDownLatch;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
-import org.slf4j.Logger;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 public class BotCore {
     private final EventBus eventBus = new EventBus();

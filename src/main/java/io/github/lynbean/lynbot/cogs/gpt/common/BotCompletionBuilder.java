@@ -1,11 +1,14 @@
 package io.github.lynbean.lynbot.cogs.gpt.common;
 
-import com.theokanning.openai.service.OpenAiService;
-import io.github.lynbean.lynbot.util.BotLogger;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import lombok.Data;
+
 import org.slf4j.Logger;
+
+import com.theokanning.openai.service.OpenAiService;
+
+import io.github.lynbean.lynbot.util.BotLogger;
+import lombok.Data;
 
 @Data
 public abstract class BotCompletionBuilder {

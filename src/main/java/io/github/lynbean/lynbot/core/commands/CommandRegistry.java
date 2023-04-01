@@ -1,17 +1,20 @@
 package io.github.lynbean.lynbot.core.commands;
 
+import java.util.List;
+import java.util.Properties;
+
+import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+
 import io.github.lynbean.lynbot.Bot;
 import io.github.lynbean.lynbot.core.commands.manager.CommandManager;
 import io.github.lynbean.lynbot.core.database.ConfigManager;
 import io.github.lynbean.lynbot.util.BotLogger;
-import java.util.List;
-import java.util.Properties;
-import javax.annotation.Nonnull;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.JDA;
-import org.slf4j.Logger;
 
 public class CommandRegistry {
     private static final Logger log = BotLogger.getLogger(CommandRegistry.class);

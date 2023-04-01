@@ -1,37 +1,49 @@
 package io.github.lynbean.lynbot.util;
 
-import com.google.common.io.CharStreams;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfo;
-import io.github.classgraph.ScanResult;
-import io.github.lynbean.lynbot.Bot;
-import io.github.lynbean.lynbot.core.database.ConfigManager;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import okhttp3.OkHttpClient;
+
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+
+import com.google.common.io.CharStreams;
+import com.google.gson.Gson;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
+import io.github.lynbean.lynbot.Bot;
+import io.github.lynbean.lynbot.core.database.ConfigManager;
+import okhttp3.Cache;
+import okhttp3.OkHttpClient;
 
 public class Util {
     private static final Logger log = BotLogger.getLogger(Util.class);
     public static final Path APPDATA = Path.of("data");
 
+    private static final File okHttpCacheFile = validFile("cookies", "OkHttp");
+    private static final Cache okHttpCache = new Cache(okHttpCacheFile, 10 * 1024 * 1024);
+
     public static OkHttpClient getHttpClient() {
-        return new OkHttpClient();
+        return new OkHttpClient().newBuilder()
+            .cache(okHttpCache)
+            .build();
+    }
+
+    public static Gson getGson() {
+        return new Gson();
     }
 
     public static List<String> getBotPrefixes() {

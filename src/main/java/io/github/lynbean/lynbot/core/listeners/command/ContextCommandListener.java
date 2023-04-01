@@ -1,10 +1,12 @@
 package io.github.lynbean.lynbot.core.listeners.command;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+import javax.annotation.Nonnull;
+
 import io.github.lynbean.lynbot.core.commands.processor.CommandProcessor;
 import io.github.lynbean.lynbot.util.Util;
-import java.util.concurrent.ExecutorService;
-import java.util.List;
-import javax.annotation.Nonnull;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 

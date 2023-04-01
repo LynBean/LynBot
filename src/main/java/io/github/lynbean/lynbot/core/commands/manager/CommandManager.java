@@ -1,14 +1,16 @@
 package io.github.lynbean.lynbot.core.commands.manager;
 
-import io.github.lynbean.lynbot.core.commands.ContextCommand;
-import io.github.lynbean.lynbot.core.commands.SlashCommand;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
+
+import io.github.lynbean.lynbot.core.commands.ContextCommand;
+import io.github.lynbean.lynbot.core.commands.SlashCommand;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 

@@ -1,6 +1,7 @@
 package io.github.lynbean.lynbot.cogs.gpt.core;
 
 import com.theokanning.openai.service.OpenAiService;
+
 import io.github.lynbean.lynbot.core.database.ConfigManager;
 import io.github.lynbean.lynbot.util.Config;
 

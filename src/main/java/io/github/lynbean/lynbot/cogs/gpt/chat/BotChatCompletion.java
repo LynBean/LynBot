@@ -1,13 +1,15 @@
 package io.github.lynbean.lynbot.cogs.gpt.chat;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.service.OpenAiService;
+
 import io.github.lynbean.lynbot.cogs.gpt.common.BotCompletionBuilder;
 import io.github.lynbean.lynbot.core.database.ConfigManager;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
