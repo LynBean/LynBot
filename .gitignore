@@ -64,5 +64,8 @@ build/
 .vscode/
 *.code-workspace
 
+### Maven ###
+dependency-reduced-pom.xml
+
 # Just some random stuff
-data
+*data
