@@ -214,16 +214,6 @@ public class GPTCogs {
             }
         )
         public static class ChatGPT extends SlashCommand {
-            private String content;
-            private String model;
-            private String role;
-            private Double frequencyPenalty;
-            private Integer maxTokens;
-            private Double presencePenalty;
-            private Double temperature;
-            private Double topP;
-            private User user;
-
             @Override
             protected void process(SlashCommandInteractionEvent event) {
                 OptionMapping contentOption = event.getOption("content");
@@ -235,15 +225,8 @@ public class GPTCogs {
                 OptionMapping temperatureOption = event.getOption("temperature");
                 OptionMapping topPOption = event.getOption("top-p");
 
-                content = contentOption.getAsString();
-                if (frequencyPenaltyOption != null) frequencyPenalty = frequencyPenaltyOption.getAsDouble();
-                if (maxTokensOption != null) maxTokens = maxTokensOption.getAsInt();
-                if (modelOption != null) model = modelOption.getAsString();
-                if (presencePenaltyOption != null) presencePenalty = presencePenaltyOption.getAsDouble();
-                if (roleOption != null) role = roleOption.getAsString();
-                if (temperatureOption != null) temperature = temperatureOption.getAsDouble();
-                if (topPOption != null) topP = topPOption.getAsDouble();
-                user = event.getUser();
+                String content = contentOption.getAsString();
+                User user = event.getUser();
 
                 MessageEmbed startEmbed = new EmbedBuilder()
                     .setAuthor(user.getName() + " is asking for", null, user.getAvatarUrl())
@@ -263,13 +246,20 @@ public class GPTCogs {
                     app.getService(), ThreadController.commandExecutor, content, user.getId()
                 );
 
-                if (frequencyPenalty != null) completion.setFrequencyPenalty(frequencyPenalty);
-                if (maxTokens != null) completion.setMaxTokens(maxTokens);
-                if (model != null) completion.setModel(model);
-                if (presencePenalty != null) completion.setPresencePenalty(presencePenalty);
-                if (role != null) completion.setRole(role);
-                if (temperature != null) completion.setTemperature(temperature);
-                if (topP != null) completion.setTopP(topP);
+                if (frequencyPenaltyOption != null)
+                    completion.setFrequencyPenalty(frequencyPenaltyOption.getAsDouble());
+                if (maxTokensOption != null)
+                    completion.setMaxTokens(maxTokensOption.getAsInt());
+                if (modelOption != null)
+                    completion.setModel(modelOption.getAsString());
+                if (presencePenaltyOption != null)
+                    completion.setPresencePenalty(presencePenaltyOption.getAsDouble());
+                if (roleOption != null)
+                    completion.setRole(roleOption.getAsString());
+                if (temperatureOption != null)
+                    completion.setTemperature(temperatureOption.getAsDouble());
+                if (topPOption != null)
+                    completion.setTopP(topPOption.getAsDouble());
 
                 completion.setUncaughtExceptionHandler(
                     (thread, throwable) -> {
