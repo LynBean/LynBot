@@ -74,8 +74,9 @@ public class GPTCogs {
                 for (Attachment attachment : message.getAttachments()) {
                     try {
                         if (attachment.isImage()) {
+                            byte[] bytes = Util.URLtoByteArray(attachment.getUrl());
                             attachments.put(
-                                "image", Util.URLtoByteArray(attachment.getUrl())
+                                "image", bytes
                             );
                         }
                     } catch (IOException e) {
@@ -86,27 +87,65 @@ public class GPTCogs {
                 content.add(attachments.toString());
             }
 
-            GPT.ChatGPT chatGPT = new GPT.ChatGPT();
-            chatGPT.content = content.toString();
-            chatGPT.user = user;
-            List<String> response = chatGPT.runGPT();
+            BotChatCompletion completion = new BotChatCompletion(
+                app.getService(), ThreadController.commandExecutor, content.toString(), user.getId()
+            );
 
-            for (String resp : response) {
-                List<String> trimmed = CogsUtil.trimMessage(resp, 2000);
-
-                for (int i = 0; i < trimmed.size(); i++) {
-                    if (i == 0) {
-                        message.reply(
-                            String.format("%s %s", message.getAuthor().getAsMention(), trimmed.get(i))
+            completion.setUncaughtExceptionHandler(
+                (thread, throwable) -> {
+                    message.reply(
+                        String.format(
+                            "%s %s", user.getAsMention(), throwable.getMessage()
                         )
-                            .queue();
-                        continue;
-                    }
-
-                    message.getChannel()
-                        .sendMessage(trimmed.get(i))
-                        .queue();
+                    )
+                    .queue();
                 }
+            );
+
+            completion.setOnError(
+                (error) -> {
+                    message.reply(
+                        String.format(
+                            "%s %s", user.getAsMention(), error.getMessage()
+                        )
+                    )
+                    .queue();
+                }
+            );
+
+            completion.setMaxNumOfCharsPerResponse(2000);
+            completion.run();
+            log.info(completion.toString());
+
+            for (int i = 0; !completion.isDone(); i++) {
+                Message responseMessage = message.reply(
+                    "Thinking..."
+                )
+                    .complete();
+
+                while (!completion.isDone()) {
+                    try {Thread.sleep(1000);}
+                    catch (InterruptedException ignored) {}
+                    List<String> responses = completion.getResponses();
+
+                    if (responses.size() < i + 1) continue;
+
+                    String response = responses.get(i);
+                    responseMessage.editMessage(response)
+                        .queue();
+
+                    if (responses.size() > i + 1) break;
+                }
+
+                if (!completion.isDone()) continue;
+
+                // Has to make sure that the last response is sent
+                List<String> responses = completion.getResponses();
+                if (responses.size() < i + 1) break;
+                String response = responses.get(i);
+
+                responseMessage.editMessage(response)
+                    .queue();
             }
         }
     }
@@ -197,11 +236,11 @@ public class GPTCogs {
                 OptionMapping topPOption = event.getOption("top-p");
 
                 content = contentOption.getAsString();
-                if (modelOption != null) model = modelOption.getAsString();
-                if (roleOption != null) role = roleOption.getAsString();
                 if (frequencyPenaltyOption != null) frequencyPenalty = frequencyPenaltyOption.getAsDouble();
                 if (maxTokensOption != null) maxTokens = maxTokensOption.getAsInt();
+                if (modelOption != null) model = modelOption.getAsString();
                 if (presencePenaltyOption != null) presencePenalty = presencePenaltyOption.getAsDouble();
+                if (roleOption != null) role = roleOption.getAsString();
                 if (temperatureOption != null) temperature = temperatureOption.getAsDouble();
                 if (topPOption != null) topP = topPOption.getAsDouble();
                 user = event.getUser();
@@ -220,33 +259,85 @@ public class GPTCogs {
                     .editOriginalEmbeds(startEmbed)
                     .complete();
 
-                final List<String> response;
+                BotChatCompletion completion = new BotChatCompletion(
+                    app.getService(), ThreadController.commandExecutor, content, user.getId()
+                );
 
-                try {
-                    response = runGPT();
-                } catch (Exception e) {
-                    event.getHook()
-                        .sendMessageEmbeds(
-                            CogsUtil.exceptionEmbed(e, event)
-                        )
-                        .queue();
+                if (frequencyPenalty != null) completion.setFrequencyPenalty(frequencyPenalty);
+                if (maxTokens != null) completion.setMaxTokens(maxTokens);
+                if (model != null) completion.setModel(model);
+                if (presencePenalty != null) completion.setPresencePenalty(presencePenalty);
+                if (role != null) completion.setRole(role);
+                if (temperature != null) completion.setTemperature(temperature);
+                if (topP != null) completion.setTopP(topP);
 
-                    return;
-                }
-
-                for (int i = 0; i < response.size(); i++) {
-                    ListIterator<String> results = CogsUtil.trimMessage(response.get(i), 4096)
-                        .listIterator();
-
-                    while (results.hasNext()) {
+                completion.setUncaughtExceptionHandler(
+                    (thread, throwable) -> {
                         event.getHook()
                             .sendMessageEmbeds(
-                                new EmbedBuilder()
-                                    .setDescription(results.next())
-                                    .build()
+                                CogsUtil.exceptionEmbed(
+                                    (Exception) throwable, event
+                                )
                             )
                             .queue();
                     }
+                );
+
+                completion.setOnError(
+                    (error) -> {
+                        event.getHook()
+                            .sendMessageEmbeds(
+                                CogsUtil.exceptionEmbed(
+                                    (Exception) error, event
+                                )
+                            )
+                            .queue();
+                    }
+                );
+
+                completion.run();
+                log.info(completion.toString());
+
+                for (int i = 0; !completion.isDone(); i++) {
+                    Message message = event.getHook()
+                        .sendMessageEmbeds(
+                            new EmbedBuilder()
+                                .setDescription("Thinking...")
+                                .build()
+                        )
+                        .complete();
+
+                    while (!completion.isDone()) {
+                        try {Thread.sleep(1000);}
+                        catch (InterruptedException ignored) {}
+                        List<String> responses = completion.getResponses();
+
+                        if (responses.size() < i + 1) continue;
+
+                        String response = responses.get(i);
+                        message.editMessageEmbeds(
+                            new EmbedBuilder()
+                                .setDescription(response)
+                                .build()
+                        )
+                            .queue();
+
+                        if (responses.size() > i + 1) break;
+                    }
+
+                    if (!completion.isDone()) continue;
+
+                    // Has to make sure that the last response is sent
+                    List<String> responses = completion.getResponses();
+                    if (responses.size() < i + 1) break;
+                    String response = responses.get(i);
+
+                    message.editMessageEmbeds(
+                        new EmbedBuilder()
+                            .setDescription(response)
+                            .build()
+                    )
+                        .queue();
                 }
             }
 
@@ -273,36 +364,6 @@ public class GPTCogs {
                 }
 
                 return super.optionDataEditor(data);
-            }
-
-            private List<String> runGPT() throws RuntimeException {
-                BotChatCompletion chat = new BotChatCompletion(
-                    app.getService(), ThreadController.commandExecutor, content, user.getId()
-                );
-                if (model != null) chat.setModel(model);
-                if (role != null) chat.setRole(role);
-                if (frequencyPenalty != null) chat.setFrequencyPenalty(frequencyPenalty);
-                if (maxTokens != null) chat.setMaxTokens(maxTokens);
-                if (presencePenalty != null) chat.setPresencePenalty(presencePenalty);
-                if (temperature != null) chat.setTemperature(temperature);
-                if (topP != null) chat.setTopP(topP);
-
-                final Throwable[] throwable = new Throwable[1];
-                chat.setUncaughtExceptionHandler(
-                    (t, e) -> {
-                        throwable[0] = e;
-                        log.debug(e.getMessage());
-                    }
-                );
-
-                chat.run();
-                chat.await();
-                log.debug(chat.toString());
-
-                if (throwable[0] != null)
-                    throw new RuntimeException(throwable[0]);
-
-                return chat.getResponse();
             }
         }
 
@@ -361,6 +422,7 @@ public class GPTCogs {
 
                 image.run();
                 image.await();
+                log.info(image.toString());
 
                 // If an exception was thrown, return
                 if (throwable[0] != null)
@@ -504,6 +566,7 @@ public class GPTCogs {
 
                 edit.run();
                 edit.await();
+                log.info(edit.toString());
 
                 // If an exception was thrown, return
                 if (throwable[0] != null)

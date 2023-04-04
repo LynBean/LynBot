@@ -71,6 +71,10 @@ public class CommandRegistry {
         ConfigManager.registerProperties(properties);
     }
 
+    /**
+     * Registers the event listeners to all shards.
+     * @param listener
+     */
     public void registerEventListeners(@Nonnull Object... listener) {
         List<JDA> jdas = Bot.getInstance()
             .getBotCore()

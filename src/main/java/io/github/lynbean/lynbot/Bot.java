@@ -18,6 +18,7 @@ public class Bot {
             Bot.botInstance.botCore.start();
         } catch (InvalidTokenException e) {
             System.out.println(e.getMessage());
+            Thread.sleep(Long.MAX_VALUE);
         } catch (Exception e) {
             e.printStackTrace();
         }
