@@ -43,7 +43,7 @@ public class CommandManager {
     /**
      * Instantiates a new instance of the given class.
      */
-    private static <@Nonnull T> T instantiate(Class<T> clazz) {
+    private static <T> @Nonnull T instantiate(Class<T> clazz) {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {

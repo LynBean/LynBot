@@ -84,6 +84,7 @@ public class BotCore {
     }
 
     public void start() throws InvalidTokenException, InterruptedException {
+        log.info("Current JVM version: {}", Runtime.version());
         preLoadProcedures();
         postLoadProcedures();
     }
@@ -121,6 +122,9 @@ public class BotCore {
     }
 
     private void fireShards() {
+        if (ConfigManager.get("bot-token", "") == "")
+            throw new InvalidTokenException("Bot token is not set, please set it in the config file.");
+
         shardManagerBuilder = getShardManagerBuilder();
         shardManagerBuilder.addEventListenerProviders(
             List.of(

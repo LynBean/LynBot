@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+
+  lynbot:
+
+    container_name: lynbot
+
+    image: lynbot:latest
+
+    restart: always
+
+    volumes:
+      - ./lynbot_data:/lynbot/data
