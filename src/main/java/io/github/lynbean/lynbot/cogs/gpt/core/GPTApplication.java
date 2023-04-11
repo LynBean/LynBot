@@ -1,5 +1,7 @@
 package io.github.lynbean.lynbot.cogs.gpt.core;
 
+import java.time.Duration;
+
 import com.theokanning.openai.service.OpenAiService;
 
 import io.github.lynbean.lynbot.core.database.ConfigManager;
@@ -11,7 +13,7 @@ public class GPTApplication {
 
     public OpenAiService getService() {
         if (service == null)
-            service = new OpenAiService(ConfigManager.get("openai-key"));
+            service = new OpenAiService(ConfigManager.get("openai-key"), Duration.ofSeconds(60));
 
         return service;
     }

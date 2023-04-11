@@ -2,6 +2,7 @@ package io.github.lynbean.lynbot.cogs.gpt.chat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.theokanning.openai.completion.chat.ChatCompletionChunk;
@@ -40,6 +41,20 @@ public class BotChatCompletion extends BotCompletionBuilder {
         super(service, executor);
         this.content = content;
         this.userId = userId;
+    }
+
+    public static String getContentWithHistory(Map<String, String> questionAndAnswer, String content) {
+        StringBuilder newContent = new StringBuilder("This is a conversation with an AI assistant.\n\n");
+        for (Map.Entry<String, String> entry : questionAndAnswer.entrySet()) {
+            newContent.append(
+                String.format(
+                    "Q: %s\nA: %s\n\n", entry.getKey(), entry.getValue()
+                )
+            );
+        }
+
+        newContent.append(String.format("Q: %s\nA:", content));
+        return newContent.toString();
     }
 
     private List<ChatMessage> getChatMessages() {

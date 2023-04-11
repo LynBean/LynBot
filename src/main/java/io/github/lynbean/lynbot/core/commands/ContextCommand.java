@@ -36,7 +36,10 @@ public abstract class ContextCommand {
      */
     public void execute(MessageReceivedEvent event, String messageWithoutPrefix) {
         String[] args = messageWithoutPrefix.split(" ");
-        ContextCommand subCommand = subCommands.get(args[1]);
+        ContextCommand subCommand = null;
+
+        if (args.length > 1)
+            subCommand = subCommands.get(args[1]);
 
         if (subCommand != null) {
             String messageWithArgsOnly = messageWithoutPrefix.substring(
@@ -46,9 +49,13 @@ public abstract class ContextCommand {
             return;
         }
 
-        String messageWithArgsOnly = messageWithoutPrefix.substring(
-            messageWithoutPrefix.indexOf(args[1])
-        );
+        String messageWithArgsOnly = messageWithoutPrefix;
+
+        if (args.length > 1)
+            messageWithArgsOnly = messageWithoutPrefix.substring(
+                messageWithoutPrefix.indexOf(args[1])
+            );
+
         process(event, messageWithArgsOnly);
     }
 

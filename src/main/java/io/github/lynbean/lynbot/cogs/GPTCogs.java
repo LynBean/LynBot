@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
@@ -32,8 +36,10 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -56,6 +62,67 @@ public class GPTCogs {
         registry.registerConfigProperties(app.getConfig().getProperties());
         registry.registerSlashCommand(GPT.class);
         registry.registerContextCommand(ContextChatGPT.class);
+        registry.registerEventListeners(new GPTListener());
+    }
+
+    public static class GPTListener extends ListenerAdapter {
+        @Override
+        public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
+            if (event.getAuthor().isBot())
+                return;
+
+            ThreadController.commandExecutor.execute(
+                () -> {
+                    if (event.getChannelType().isThread()) {
+                        ThreadChannel channel = event.getChannel().asThreadChannel();
+
+                        if (!channel.getName().startsWith("ChatBox-"))
+                            return;
+
+                        Map<String, String> qAndA = new LinkedHashMap<>();
+
+                        List<Message> messages;
+                        try {
+                            messages = channel.getIterableHistory()
+                                .complete();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return;
+                        }
+
+                        StringBuilder question = new StringBuilder();
+                        StringBuilder answer = new StringBuilder();
+
+                        // We skip first message because it's the main question of this prompt
+                        for (int i = messages.size() - 1; i > 0 ; i--) {
+                            Message message = messages.get(i);
+                            String content = message.getContentRaw();
+
+                            if (message.getAuthor().getId().contentEquals(event.getJDA().getSelfUser().getId())) {
+                                answer.append(content);
+                            } else {
+                                if (!question.isEmpty()) {
+                                    qAndA.put(question.toString(), answer.toString());
+                                    question = new StringBuilder();
+                                    answer = new StringBuilder();
+                                }
+                                question.append(content);
+                            }
+                        }
+
+                        if (!answer.isEmpty())
+                            qAndA.put(question.toString(), answer.toString());
+
+                        if (!qAndA.isEmpty()) {
+                            String finalContent = BotChatCompletion.getContentWithHistory(qAndA, event.getMessage().getContentRaw());
+                            new ContextChatGPT().execute(event, finalContent);
+                        } else {
+                            new ContextChatGPT().execute(event, event.getMessage().getContentRaw());
+                        }
+                    }
+                }
+            );
+        }
     }
 
     @ContextCommandMeta(name = "chat")
@@ -354,6 +421,29 @@ public class GPTCogs {
                 }
 
                 return super.optionDataEditor(data);
+            }
+        }
+
+        @SlashCommandMeta(
+            name = "chatbox",
+            description = "Create a chatbox with the OpenAI GPT-3 API"
+        )
+        public static class ChatBoxGPT extends SlashCommand {
+            @Override
+            protected void process(SlashCommandInteractionEvent event) {
+                Message message = event.getHook()
+                    .editOriginal(
+                        "> %s Join the thread to chat with the bot!".formatted(
+                            event.getUser().getAsMention()
+                        )
+                    )
+                    .complete();
+
+                message.createThreadChannel(
+                    "ChatBox-%s".formatted(event.getId())
+                )
+                    .complete()
+                    .addThreadMember(event.getUser());
             }
         }
 
