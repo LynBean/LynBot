@@ -16,6 +16,8 @@
   my life through films 🎞
 </p>
 
+If you met any problems, you may try to delete the configs file and let the program regenerate it by itself.
+
 ChatBox?
 ![image](https://user-images.githubusercontent.com/57824016/231408213-d16d1b14-2bd2-4ba0-9059-f9f907981000.png)
 
