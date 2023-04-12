@@ -37,6 +37,7 @@ import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel.AutoArchiveDuration;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -93,8 +94,9 @@ public class GPTCogs {
                         StringBuilder question = new StringBuilder();
                         StringBuilder answer = new StringBuilder();
 
-                        // We skip first message because it's the main question of this prompt
-                        for (int i = messages.size() - 1; i > 0 ; i--) {
+                        // We skip the latest message because it's the main question of this prompt
+                        // We skip the beggining first message because it's the AI preset configurations
+                        for (int i = messages.size() - 3; i > 0 ; i--) {
                             Message message = messages.get(i);
                             String content = message.getContentRaw();
 
@@ -110,15 +112,24 @@ public class GPTCogs {
                             }
                         }
 
+                        String header = channel.getHistoryFromBeginning(2)
+                            .complete()
+                            .getRetrievedHistory()
+                            .get(0)
+                            .getContentRaw();
+
+                        if (header.startsWith("> AI preset:"))
+                            header = header.substring(14);
+                        else if (header.startsWith("> Using no preset"))
+                            header = null;
+                        else
+                            header = null;
+
                         if (!answer.isEmpty())
                             qAndA.put(question.toString(), answer.toString());
 
-                        if (!qAndA.isEmpty()) {
-                            String finalContent = BotChatCompletion.getContentWithHistory(qAndA, event.getMessage().getContentRaw());
-                            new ContextChatGPT().execute(event, finalContent);
-                        } else {
-                            new ContextChatGPT().execute(event, event.getMessage().getContentRaw());
-                        }
+                        String finalContent = BotChatCompletion.getContentWithHistory(header, qAndA, event.getMessage().getContentRaw());
+                        new ContextChatGPT().execute(event, finalContent);
                     }
                 }
             );
@@ -426,24 +437,87 @@ public class GPTCogs {
 
         @SlashCommandMeta(
             name = "chatbox",
-            description = "Create a chatbox with the OpenAI GPT-3 API"
+            description = "Create a chatbox with the OpenAI GPT-3 API",
+            options = {
+                @SlashCommandMeta.Option(
+                    type = OptionType.STRING,
+                    name = "custom-preset",
+                    description = "The preset to use for the chatbox"
+                ),
+                @SlashCommandMeta.Option(
+                    type = OptionType.STRING,
+                    name = "preset",
+                    description = "The preset to use for the chatbox"
+                )
+            }
         )
         public static class ChatBoxGPT extends SlashCommand {
             @Override
             protected void process(SlashCommandInteractionEvent event) {
+                OptionMapping customPresetOption = event.getOption("custom-preset");
+                OptionMapping presetOption = event.getOption("preset");
+                String presetMessage = null;
+
+                if (customPresetOption != null)
+                    presetMessage = "> AI preset:\n" + customPresetOption.getAsString();
+
+                else if (presetOption != null) {
+                    String preset = presetOption.getAsString();
+                    String header = preset;
+
+                    try {
+                        int presetIndex = Integer.parseInt(preset);
+
+                        String[] contentRaw = ConfigManager.get("chat-chatbox-presets")
+                            .split(",,");
+
+                        if (presetIndex >= contentRaw.length)
+                            throw new NumberFormatException();
+
+                        header = contentRaw[presetIndex].split("::")[1];
+
+                    } catch (NumberFormatException ignored) {}
+
+                    presetMessage = "> AI preset:\n" + header;
+                }
+
+                else
+                    presetMessage = "> Using no preset for this conversation.";
+
                 Message message = event.getHook()
                     .editOriginal(
-                        "> %s Join the thread to chat with the bot!".formatted(
-                            event.getUser().getAsMention()
+                        "> %s Join the thread to have a conversation with the AI!\n\n%s".formatted(
+                            event.getUser().getAsMention(),
+                            presetMessage.substring(0, presetMessage.length() > 60 ? 60 : presetMessage.length()) + "..."
                         )
                     )
                     .complete();
 
-                message.createThreadChannel(
+                ThreadChannel channel = message.createThreadChannel(
                     "ChatBox-%s".formatted(event.getId())
                 )
-                    .complete()
-                    .addThreadMember(event.getUser());
+                    .setAutoArchiveDuration(AutoArchiveDuration.TIME_1_HOUR)
+                    .complete();
+
+                channel.addThreadMember(event.getUser())
+                    .queue();
+                channel.sendMessage(presetMessage)
+                    .queue();
+            }
+
+            @Override
+            protected OptionData optionDataEditor(OptionData data) {
+                if (data.getName().equalsIgnoreCase("preset") && data.getType().canSupportChoices()) {
+                    String[] contentRaw = ConfigManager.get("chat-chatbox-presets")
+                        .split(",,");
+
+                    for (int i = 0; i < contentRaw.length; i++) {
+                        String[] titleAndValue = contentRaw[i].split("::");
+                        data.addChoice(titleAndValue[0], String.valueOf(i));
+                    }
+                }
+
+                return super.optionDataEditor(data);
             }
         }
 

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import javax.annotation.Nullable;
+
 import com.theokanning.openai.completion.chat.ChatCompletionChunk;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -43,18 +45,24 @@ public class BotChatCompletion extends BotCompletionBuilder {
         this.userId = userId;
     }
 
-    public static String getContentWithHistory(Map<String, String> questionAndAnswer, String content) {
-        StringBuilder newContent = new StringBuilder("This is a conversation with an AI assistant.\n\n");
-        for (Map.Entry<String, String> entry : questionAndAnswer.entrySet()) {
-            newContent.append(
+    public static String getContentWithHistory(@Nullable String header, Map<String, String> chatHistory, String question) {
+        String defaultHeader = "You are an AI who is having a conversation with a human. " +
+            "The human is trying to ask you about something. " +
+            "You should respond to the human's prompts appropriately. " +
+            "Try to have a conversation that is as natural as possible.";
+
+        StringBuilder content = new StringBuilder("%s\n\n".formatted(header == null ? defaultHeader : header));
+
+        for (Map.Entry<String, String> entry : chatHistory.entrySet()) {
+            content.append(
                 String.format(
                     "Q: %s\nA: %s\n\n", entry.getKey(), entry.getValue()
                 )
             );
         }
 
-        newContent.append(String.format("Q: %s\nA:", content));
-        return newContent.toString();
+        content.append(String.format("Q: %s\nA:", question));
+        return content.toString();
     }
 
     private List<ChatMessage> getChatMessages() {
