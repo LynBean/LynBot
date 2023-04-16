@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import javax.annotation.Nullable;
-
 import com.theokanning.openai.completion.chat.ChatCompletionChunk;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -45,13 +43,8 @@ public class BotChatCompletion extends BotCompletionBuilder {
         this.userId = userId;
     }
 
-    public static String getContentWithHistory(@Nullable String header, Map<String, String> chatHistory, String question) {
-        String defaultHeader = "You are an AI who is having a conversation with a human. " +
-            "The human is trying to ask you about something. " +
-            "You should respond to the human's prompts appropriately. " +
-            "Try to have a conversation that is as natural as possible.";
-
-        StringBuilder content = new StringBuilder("%s\n\n".formatted(header == null ? defaultHeader : header));
+    public static String getContentWithHistory(String header, Map<String, String> chatHistory, String question) {
+        StringBuilder content = new StringBuilder("%s\n\n".formatted(header));
 
         for (Map.Entry<String, String> entry : chatHistory.entrySet()) {
             content.append(

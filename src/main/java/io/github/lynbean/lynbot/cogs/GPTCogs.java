@@ -1,6 +1,7 @@
 package io.github.lynbean.lynbot.cogs;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,7 +78,7 @@ public class GPTCogs {
                     if (event.getChannelType().isThread()) {
                         ThreadChannel channel = event.getChannel().asThreadChannel();
 
-                        if (!channel.getName().startsWith("ChatBox-"))
+                        if (!channel.getName().startsWith("ChatBox"))
                             return;
 
                         Map<String, String> qAndA = new LinkedHashMap<>();
@@ -112,23 +113,27 @@ public class GPTCogs {
                             }
                         }
 
-                        String header = channel.getHistoryFromBeginning(2)
-                            .complete()
-                            .getRetrievedHistory()
-                            .get(0)
-                            .getContentRaw();
-
-                        if (header.startsWith("> AI preset:"))
-                            header = header.substring(14);
-                        else if (header.startsWith("> Using no preset"))
-                            header = null;
-                        else
-                            header = null;
-
                         if (!answer.isEmpty())
                             qAndA.put(question.toString(), answer.toString());
 
-                        String finalContent = BotChatCompletion.getContentWithHistory(header, qAndA, event.getMessage().getContentRaw());
+                        String presetUrl = channel.getHistoryFromBeginning(2)
+                            .complete()
+                            .getRetrievedHistory()
+                            .get(0)
+                            .getAttachments()
+                            .get(0)
+                            .getUrl();
+
+                        String preset;
+
+                        try {
+                            preset = new String(Util.URLtoByteArray(presetUrl));
+                        } catch (IOException e) {
+                            // TODO: handle exception
+                            return;
+                        }
+
+                        String finalContent = BotChatCompletion.getContentWithHistory(preset, qAndA, event.getMessage().getContentRaw());
                         new ContextChatGPT().execute(event, finalContent);
                     }
                 }
@@ -456,17 +461,18 @@ public class GPTCogs {
             protected void process(SlashCommandInteractionEvent event) {
                 OptionMapping customPresetOption = event.getOption("custom-preset");
                 OptionMapping presetOption = event.getOption("preset");
-                String presetMessage = null;
 
-                if (customPresetOption != null)
-                    presetMessage = "> AI preset:\n" + customPresetOption.getAsString();
+                String preset = null;
+                String shortDescription = null;
+
+                if (customPresetOption != null) {
+                    preset = customPresetOption.getAsString();
+                    shortDescription = "> " + preset.substring(0, preset.length() > 80 ? 80 : preset.length()) + " ...";
+                }
 
                 else if (presetOption != null) {
-                    String preset = presetOption.getAsString();
-                    String header = preset;
-
                     try {
-                        int presetIndex = Integer.parseInt(preset);
+                        int presetIndex = presetOption.getAsInt();
 
                         String[] contentRaw = ConfigManager.get("chat-chatbox-presets")
                             .split(",,");
@@ -474,35 +480,52 @@ public class GPTCogs {
                         if (presetIndex >= contentRaw.length)
                             throw new NumberFormatException();
 
-                        header = contentRaw[presetIndex].split("::")[1];
+                        shortDescription = "> " + contentRaw[presetIndex].split("::")[0];
+                        preset = contentRaw[presetIndex].split("::")[1];
 
                     } catch (NumberFormatException ignored) {}
-
-                    presetMessage = "> AI preset:\n" + header;
                 }
 
-                else
-                    presetMessage = "> Using no preset for this conversation.";
+                else {
+                    preset = ConfigManager.get("chat-chatbox-defaultpreset");
+                    shortDescription = "> itself";
+                }
 
                 Message message = event.getHook()
                     .editOriginal(
-                        "> %s Join the thread to have a conversation with the AI!\n\n%s".formatted(
-                            event.getUser().getAsMention(),
-                            presetMessage.substring(0, presetMessage.length() > 60 ? 60 : presetMessage.length()) + "..."
+                        "> %s Hello there! I've been eagerly anticipating your arrival. Join me in the thread and let's chat together!\n\n".formatted(
+                            event.getUser().getAsMention()
                         )
                     )
                     .complete();
 
-                ThreadChannel channel = message.createThreadChannel(
-                    "ChatBox-%s".formatted(event.getId())
+                message.editMessageEmbeds(
+                    new EmbedBuilder()
+                        .setTitle("The AI is cosplaying as ...")
+                        .setDescription(shortDescription)
+                        .build()
                 )
-                    .setAutoArchiveDuration(AutoArchiveDuration.TIME_1_HOUR)
+                    .queue();
+
+                ThreadChannel channel = message.createThreadChannel("ChatBox")
+                    .setAutoArchiveDuration(AutoArchiveDuration.TIME_3_DAYS)
                     .complete();
 
                 channel.addThreadMember(event.getUser())
                     .queue();
-                channel.sendMessage(presetMessage)
-                    .queue();
+
+                try (
+                    FileUpload file = FileUpload.fromData(
+                        preset.getBytes(StandardCharsets.UTF_8),
+                        String.format("ChatBox-Preset-%s.txt", event.getId())
+                    );
+                ) {
+                    channel.sendFiles(file)
+                        .queue();
+                } catch (IOException e) {
+                    event.reply("Preset failed to upload.")
+                        .queue();
+                }
             }
 
             @Override
@@ -518,6 +541,50 @@ public class GPTCogs {
                 }
 
                 return super.optionDataEditor(data);
+            }
+        }
+
+        @SlashCommandMeta(
+            name = "lock-all-chatboxes",
+            description = "Lock all chatboxes"
+        )
+        public static class LockAllChatBoxes extends SlashCommand {
+            @Override
+            protected void process(SlashCommandInteractionEvent event) {
+                event.getGuild()
+                    .getThreadChannels()
+                    .stream()
+                    .filter(threadChannel -> threadChannel.getName().startsWith("ChatBox"))
+                    .forEach(threadChannel -> threadChannel.getManager()
+                        .setLocked(true)
+                        .queue()
+                    );
+
+                event.getHook()
+                    .editOriginal("> Locked all chatboxes.")
+                    .queue();
+            }
+        }
+
+        @SlashCommandMeta(
+            name = "close-all-chatboxes",
+            description = "Close all chatboxes"
+        )
+        public static class CloseAllChatBoxes extends SlashCommand {
+            @Override
+            protected void process(SlashCommandInteractionEvent event) {
+                event.getGuild()
+                    .getThreadChannels()
+                    .stream()
+                    .filter(threadChannel -> threadChannel.getName().startsWith("ChatBox"))
+                    .forEach(threadChannel -> threadChannel.getManager()
+                        .setArchived(true)
+                        .queue()
+                    );
+
+                event.getHook()
+                    .editOriginal("> Closed all chatboxes.")
+                    .queue();
             }
         }
 
