@@ -106,5 +106,13 @@ public class BotChatCompletion extends BotCompletionBuilder {
                     setFinishReason(chunk.getChoices().get(0).getFinishReason());
                 }
             );
+
+        while (!isDone) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

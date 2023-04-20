@@ -491,6 +491,16 @@ public class GPTCogs {
                     shortDescription = "> itself";
                 }
 
+                preset = BotChatCompletion.getContentWithHistory(preset, new HashMap<>(), "Hello there! Nice to meet you!");
+                BotChatCompletion chat = new BotChatCompletion(
+                    app.getService(), ThreadController.commandExecutor, preset, event.getUser().getId()
+                );
+
+                chat.setTemperature(1.5);
+                chat.run();
+                chat.await();
+                preset = preset.concat(" %s".formatted(chat.getResponses().get(0)));
+
                 Message message = event.getHook()
                     .editOriginal(
                         "> %s Hello there! I've been eagerly anticipating your arrival. Join me in the thread and let's chat together!\n\n".formatted(
@@ -501,7 +511,7 @@ public class GPTCogs {
 
                 message.editMessageEmbeds(
                     new EmbedBuilder()
-                        .setTitle("The AI is cosplaying as ...")
+                        .setTitle("*命令!*")
                         .setDescription(shortDescription)
                         .build()
                 )
