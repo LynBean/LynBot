@@ -12,3 +12,6 @@ services:
 
     volumes:
       - ./lynbot_data:/lynbot/data
+
+    ports:
+      - 27017:27017 # MongoDB 

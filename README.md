@@ -16,8 +16,6 @@
   my life through films 🎞
 </p>
 
-If you met any problems, you may try to delete the configs file and let the program regenerate it by itself.
-
 ChatBox?
 ![image](https://user-images.githubusercontent.com/57824016/231408213-d16d1b14-2bd2-4ba0-9059-f9f907981000.png)
 
@@ -26,5 +24,3 @@ ChatBox with Presets! (Also allowing user input custom preset)
 
 Ask Chat GPT
 ![image](https://user-images.githubusercontent.com/57824016/231408823-c54ae8c0-ba08-44e4-a828-4dc226215a45.png)
-
-Other GPT including ImageGPT and EditGPT also implemented!

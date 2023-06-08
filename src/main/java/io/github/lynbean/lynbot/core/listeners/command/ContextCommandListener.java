@@ -1,27 +1,25 @@
 package io.github.lynbean.lynbot.core.listeners.command;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nonnull;
 
 import io.github.lynbean.lynbot.core.commands.processor.CommandProcessor;
-import io.github.lynbean.lynbot.util.Util;
+import io.github.lynbean.lynbot.core.thread.ThreadController;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 public class ContextCommandListener extends ListenerAdapter {
+    private final List<String> prefixes;
     private final CommandProcessor commandProcessor;
-    private final ExecutorService executorService;
 
-    public ContextCommandListener(CommandProcessor commandProcessor, ExecutorService executorService) {
+    public ContextCommandListener(CommandProcessor commandProcessor, List<String> prefixes) {
         this.commandProcessor = commandProcessor;
-        this.executorService = executorService;
+        this.prefixes = prefixes;
     }
 
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
-        List<String> prefixes = Util.getBotPrefixes();
         String message = event.getMessage().getContentRaw();
         String selfUserMention = event.getJDA().getSelfUser().getAsMention();
 
@@ -45,8 +43,6 @@ public class ContextCommandListener extends ListenerAdapter {
         }
 
         final String messageWithoutPrefix = message;
-        executorService.execute(
-            () -> commandProcessor.execute(event, messageWithoutPrefix)
-        );
+        ThreadController.executeCommand(() -> commandProcessor.execute(event, messageWithoutPrefix));
     }
 }

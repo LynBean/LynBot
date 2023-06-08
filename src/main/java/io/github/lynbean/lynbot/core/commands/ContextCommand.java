@@ -5,12 +5,15 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.core.BotCore;
 import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
+import lombok.Setter;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public abstract class ContextCommand {
-    private final @Nonnull String name;
-    private final Map<String, ContextCommand> subCommands = new HashMap<>();
+    protected @Setter BotCore core;
+    protected final @Nonnull String name;
+    protected final Map<String, ContextCommand> subCommands = new HashMap<>();
 
     public ContextCommand() {
         var clazz = getClass();

@@ -8,7 +8,12 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.core.BotCore;
 import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -16,10 +21,16 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 
 public abstract class SlashCommand {
-    private Boolean deferReply = true;
-    private final @Nonnull String name;
-    private final @Nonnull String description;
-    private final @Nonnull List<OptionData> options = new ArrayList<>();
+    private @Getter @Setter BotCore core;
+    private @Getter @Nonnull final String name;
+    private @Getter @Nonnull final String description;
+    private @Getter final boolean isDeferReply;
+    private @Getter final boolean isEphemeral;
+    private @Getter final boolean isNSFW;
+    private @Getter final boolean isGuildOnly;
+    private @Getter final boolean isAdminOnly;
+    private @Getter final Permission[] requiredPermissions;
+    private @Getter @Nonnull final List<OptionData> options = new ArrayList<>();
     private final Map<String, SlashCommand> subCommands = new HashMap<>();
     private final List<SubcommandData> subCommandDatas = new ArrayList<>();
 
@@ -33,35 +44,48 @@ public abstract class SlashCommand {
         SlashCommandMeta meta = clazz.getAnnotation(SlashCommandMeta.class);
         this.name = meta.name();
         this.description = meta.description();
+        this.isDeferReply = meta.deferReply();
+        this.isEphemeral = meta.ephemeral();
+        this.isNSFW = meta.isNSFW();
+        this.isGuildOnly = meta.isGuildOnly();
+        this.isAdminOnly = meta.isAdminOnly();
+        this.requiredPermissions = meta.permissions();
 
         if (meta.options().length > 0) {
-            for (var option : meta.options()) {
-                OptionData data = new OptionData(
-                    option.type(), option.name(), option.description(), option.required()
+            List<OptionData> tempOptions = new ArrayList<>();
+
+            List.of(meta.options())
+                .stream()
+                .forEach(
+                    option -> {
+                        OptionData data = new OptionData(
+                            option.type(), option.name(), option.description(), option.required()
+                        );
+
+                        if (data.getType() == OptionType.INTEGER)
+                            data.setMinValue(option.minIntValues())
+                                .setMaxValue(option.maxIntValues());
+
+                        if (data.getType() == OptionType.NUMBER)
+                            data.setMinValue(option.minDoubleValues())
+                                .setMaxValue(option.maxDoubleValues());
+
+                        if (option.choices().length > 0 && data.getType().canSupportChoices()) {
+                            for (var choice : option.choices()) {
+                                if (data.getType() == OptionType.INTEGER)
+                                    data.addChoice(choice.description(), Integer.parseInt(choice.value()));
+                                else if (data.getType() == OptionType.NUMBER)
+                                    data.addChoice(choice.description(), Double.parseDouble(choice.value()));
+                                else
+                                    data.addChoice(choice.description(), choice.value());
+                            }
+                        }
+
+                        tempOptions.add(data);
+                    }
                 );
 
-                if (data.getType() == OptionType.INTEGER)
-                    data.setMinValue(option.minIntValues())
-                        .setMaxValue(option.maxIntValues());
-
-                if (data.getType() == OptionType.NUMBER)
-                    data.setMinValue(option.minDoubleValues())
-                        .setMaxValue(option.maxDoubleValues());
-
-                if (option.choices().length > 0 && data.getType().canSupportChoices()) {
-                    for (var choice : option.choices()) {
-                        if (data.getType() == OptionType.INTEGER)
-                            data.addChoice(choice.description(), Integer.parseInt(choice.value()));
-                        else if (data.getType() == OptionType.NUMBER)
-                            data.addChoice(choice.description(), Double.parseDouble(choice.value()));
-                        else
-                            data.addChoice(choice.description(), choice.value());
-                    }
-                }
-
-                data = optionDataEditor(data);
-                options.add(data);
-            }
+            this.options.addAll(editOptions(tempOptions));
         }
     }
 
@@ -78,8 +102,8 @@ public abstract class SlashCommand {
      * @param data The option data to edit.
      * @return The edited option data.
      */
-    protected OptionData optionDataEditor(OptionData data) {
-        return data;
+    protected List<OptionData> editOptions(List<OptionData> options) {
+        return options;
     };
 
     /**
@@ -89,18 +113,11 @@ public abstract class SlashCommand {
     protected void autoComplete(CommandAutoCompleteInteractionEvent event) {};
 
     /**
-     * Whether the command should be deferred before processing.
-     */
-    public void setDeferReply(Boolean deferReply) {
-        this.deferReply = deferReply;
-    }
-
-    /**
      * Executes the command.
      * @param event
      */
     public void execute(SlashCommandInteractionEvent event) {
-        if (deferReply)
+        if (isDeferReply())
             event.deferReply().queue();
 
         SlashCommand subCommand = subCommands.get(event.getSubcommandName());
@@ -138,17 +155,5 @@ public abstract class SlashCommand {
      */
     public List<SubcommandData> getSubCommandDatas() {
         return Collections.unmodifiableList(subCommandDatas);
-    }
-
-    public @Nonnull String getName() {
-        return name;
-    }
-
-    public @Nonnull String getDescription() {
-        return description;
-    }
-
-    public @Nonnull List<OptionData> getOptions() {
-        return options;
     }
 }

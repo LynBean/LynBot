@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 
 import javax.annotation.Nonnull;
 
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
 @Retention(RetentionPolicy.RUNTIME)
@@ -15,7 +16,15 @@ public @interface SlashCommandMeta {
     @Nonnull String name();
     @Nonnull String description();
 
-    Option[] options() default {};
+    boolean deferReply() default false;
+    boolean ephemeral() default false;
+    boolean isNSFW() default false;
+    boolean isGuildOnly() default false;
+    boolean isAdminOnly() default false;
+
+    @Nonnull Permission[] permissions() default {};
+
+    @Nonnull Option[] options() default {};
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target({})
@@ -29,12 +38,12 @@ public @interface SlashCommandMeta {
         double minDoubleValues() default -9007199254740991D;
         double maxDoubleValues() default 9007199254740991D;
         @Nonnull Choice[] choices() default {};
-    }
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({})
-    @interface Choice {
-        @Nonnull String description();
-        @Nonnull String value();
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({})
+        @interface Choice {
+            @Nonnull String description();
+            @Nonnull String value();
+        }
     }
 }

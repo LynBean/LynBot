@@ -41,6 +41,12 @@
       <version>1.4.6</version>
     </dependency>
 
+    <dependency>
+      <groupId>club.minnced</groupId>
+      <artifactId>discord-webhooks</artifactId>
+      <version>0.8.2</version>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -53,6 +59,14 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>31.1-jre</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/com.google.apis-->
+    <!-- https://mvnrepository.com/artifact/com.google.apis/google-api-services-customsearch -->
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-customsearch</artifactId>
+      <version>v1-rev20230319-2.0.0</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.sedmelluq/lavaplayer -->
@@ -102,7 +116,7 @@
     <dependency>
       <groupId>net.dv8tion</groupId>
       <artifactId>JDA</artifactId>
-      <version>5.0.0-beta.6</version>
+      <version>5.0.0-beta.9</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/nl.vv32.rcon/rcon -->
@@ -110,6 +124,12 @@
       <groupId>nl.vv32.rcon</groupId>
       <artifactId>rcon</artifactId>
       <version>1.2.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver-sync</artifactId>
+      <version>4.9.1</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->

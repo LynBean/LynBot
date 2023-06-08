@@ -9,15 +9,25 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.core.BotCore;
 import io.github.lynbean.lynbot.core.commands.ContextCommand;
 import io.github.lynbean.lynbot.core.commands.SlashCommand;
+import lombok.Getter;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
 public class CommandManager {
     private final Map<String, ContextCommand> contextCommands = new HashMap<>();
     private final Map<String, SlashCommand> slashCommands = new HashMap<>();
-    private final List<CommandData> slashCommandDatas = new ArrayList<>();
+    private final List<CommandData> globalSlashCommandDatas = new ArrayList<>();
+    private final Map<String, List<CommandData>> guildSlashCommandDatas = new HashMap<>();
+
+    private @Getter final BotCore core;
+
+    public CommandManager(BotCore core) {
+        this.core = core;
+    }
 
     /**
      * Returns an unmodifiable map of all registered context commands.
@@ -36,14 +46,18 @@ public class CommandManager {
     /**
      * Returns an unmodifiable list of all registered slash commands.
      */
-    public List<CommandData> getSlashCommandDatas() {
-        return Collections.unmodifiableList(slashCommandDatas);
+    public List<CommandData> getGlobalSlashCommandDatas() {
+        return Collections.unmodifiableList(globalSlashCommandDatas);
+    }
+
+    public Map<String, List<CommandData>> getGuildSlashCommandData() {
+        return Collections.unmodifiableMap(guildSlashCommandDatas);
     }
 
     /**
      * Instantiates a new instance of the given class.
      */
-    private static <T> @Nonnull T instantiate(Class<T> clazz) {
+    private <T> @Nonnull T instantiate(Class<T> clazz) {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
@@ -63,12 +77,13 @@ public class CommandManager {
             throw new IllegalArgumentException("Context Command with name " + command.getName() + " already exists");
         }
 
+        command.setCore(core);
         registerSubContextCommands(command);
         contextCommands.put(command.getName(), command);
         return command;
     }
 
-    private static void registerSubContextCommands(ContextCommand command) {
+    private void registerSubContextCommands(ContextCommand command) {
         for (var inner : command.getClass().getDeclaredClasses()) {
             if (!Modifier.isStatic(inner.getModifiers())) continue;
             if (!ContextCommand.class.isAssignableFrom(inner)) continue;
@@ -83,8 +98,27 @@ public class CommandManager {
     /**
      * Registers a slash command.
      */
-    public <T extends SlashCommand> T registerSlashCommand(@Nonnull Class<T> clazz) {
-        return registerSlashCommand(instantiate(clazz));
+    public <T extends SlashCommand> T registerGlobalSlashCommand(@Nonnull Class<T> clazz) {
+        T command = registerSlashCommand(instantiate(clazz));
+        CommandData commandData = registerSlashCommandData(command);
+        slashCommands.put(command.getName(), command);
+        globalSlashCommandDatas.add(commandData);
+        return command;
+    }
+
+    /**
+     * Registers a slash command.
+     * This command will only be registered in development guild.
+     */
+    public <T extends SlashCommand> T registerGuildSlashCommand(@Nonnull Class<T> clazz, @Nonnull String guildId) {
+        T command = registerSlashCommand(instantiate(clazz));
+        CommandData commandData = registerSlashCommandData(command);
+        slashCommands.put(command.getName(), command);
+
+        guildSlashCommandDatas.getOrDefault(guildId, new ArrayList<>())
+            .add(commandData);
+
+        return command;
     }
 
     private <T extends SlashCommand> T registerSlashCommand(@Nonnull T command) {
@@ -92,7 +126,13 @@ public class CommandManager {
             throw new IllegalArgumentException("Slash Command with name " + command.getName() + " already exists");
         }
 
+        command.setCore(core);
         registerSubSlashCommands(command);
+
+        return command;
+    }
+
+    private <T extends SlashCommand> CommandData registerSlashCommandData(@Nonnull T command) {
         CommandData commandData;
 
         if (command.getSubCommands().isEmpty())
@@ -103,20 +143,34 @@ public class CommandManager {
             commandData = Commands.slash(command.getName(), command.getDescription())
                 .addSubcommands(command.getSubCommandDatas());
 
-        slashCommands.put(command.getName(), command);
-        slashCommandDatas.add(commandData);
-        return command;
+        commandData
+            .setDefaultPermissions(command.isAdminOnly() == false ? DefaultMemberPermissions.ENABLED : DefaultMemberPermissions.DISABLED)
+            .setGuildOnly(command.isGuildOnly())
+            .setNSFW(command.isNSFW());
+
+        if (command.getRequiredPermissions().length > 0)
+            commandData.setDefaultPermissions(DefaultMemberPermissions.enabledFor(command.getRequiredPermissions()));
+
+        return commandData;
     }
 
-    private static void registerSubSlashCommands(SlashCommand command) {
+    private void registerSubSlashCommands(SlashCommand command) {
         for (var inner : command.getClass().getDeclaredClasses()) {
             if (!Modifier.isStatic(inner.getModifiers())) continue;
             if (!SlashCommand.class.isAssignableFrom(inner)) continue;
             if (inner.isLocalClass() || inner.isAnonymousClass()) continue;
             if (Modifier.isAbstract(inner.getModifiers())) continue;
 
-            var subCommand = (SlashCommand) instantiate(inner);
+            SlashCommand subCommand = (SlashCommand) instantiate(inner);
+            subCommand.setCore(core);
             command.addSubCommand(subCommand);
         }
+    }
+
+    public void unregisterAll() {
+        contextCommands.clear();
+        slashCommands.clear();
+        globalSlashCommandDatas.clear();
+        guildSlashCommandDatas.clear();
     }
 }
