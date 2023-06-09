@@ -6,7 +6,7 @@ services:
 
     container_name: lynbot
 
-    image: lynbot:latest
+    image: ghcr.io/lynbean/lynbot:latest
 
     restart: always
 
@@ -14,4 +14,4 @@ services:
       - ./lynbot_data:/lynbot/data
 
     ports:
-      - 27017:27017 # MongoDB 
+      - 27017:27017 # MongoDB (REQUIRED)
