@@ -1,7 +1,6 @@
 package io.github.lynbean.lynbot.cogs.guildmoderation;
 
 import static com.mongodb.client.model.Filters.eq;
-import static io.github.lynbean.lynbot.Bot.getMongoManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,6 +14,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.InsertOneOptions;
 import com.mongodb.client.model.ReplaceOptions;
 
+import io.github.lynbean.lynbot.Bot;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.GuildEventListenerManager;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.ServerModeration;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildApplicationCommandPermissionEvent;
@@ -49,7 +49,7 @@ public class GuildDatabaseManager {
     }
 
     public static MongoCollection<ServerModeration> getAdminCollection() {
-        return getMongoManager().getCollection(SERVER_MODERATION_COLLECTION, ServerModeration.class);
+        return Bot.getMongoManager().getCollection(SERVER_MODERATION_COLLECTION, ServerModeration.class);
     }
 
     public @Nullable static ServerModeration findServerModeration(String guildId) {

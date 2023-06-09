@@ -1,7 +1,6 @@
 package io.github.lynbean.lynbot.cogs.openai.chatbox;
 
 import static com.mongodb.client.model.Filters.eq;
-import static io.github.lynbean.lynbot.Bot.getMongoManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +11,7 @@ import javax.annotation.Nullable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.ReplaceOptions;
 
+import io.github.lynbean.lynbot.Bot;
 import io.github.lynbean.lynbot.cogs.openai.chatbox.pojo.ChatBoxPreset;
 import net.dv8tion.jda.api.interactions.commands.Command.Choice;
 
@@ -19,7 +19,7 @@ public class ChatBoxDatabaseManager {
     private static final String CHATBOX_PRESET_COLLECTION = "openai_chatbox_presets";
 
     public static MongoCollection<ChatBoxPreset> getChatBoxPresetCollection() {
-        return getMongoManager().getCollection(CHATBOX_PRESET_COLLECTION, ChatBoxPreset.class);
+        return Bot.getMongoManager().getCollection(CHATBOX_PRESET_COLLECTION, ChatBoxPreset.class);
     }
 
     public @Nullable static ChatBoxPreset findChatBoxPreset(String id) {

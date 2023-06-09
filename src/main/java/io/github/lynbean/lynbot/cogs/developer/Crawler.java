@@ -1,18 +1,15 @@
 package io.github.lynbean.lynbot.cogs.developer;
 
-import static io.github.lynbean.lynbot.Bot.getMongoManager;
+import static io.github.lynbean.lynbot.core.thread.ThreadController.commandExecutor;
 
-import java.time.LocalTime;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.mongodb.client.model.ReplaceOptions;
 
-import static io.github.lynbean.lynbot.core.thread.ThreadController.commandExecutor;
+import io.github.lynbean.lynbot.Bot;
 import io.github.lynbean.lynbot.database.pojo.ServerChannel;
 import io.github.lynbean.lynbot.database.pojo.ServerEmoji;
 import io.github.lynbean.lynbot.database.pojo.ServerMessage;
@@ -81,7 +78,7 @@ public class Crawler {
                 guilds.stream()
                     .forEach(
                         guild -> {
-                            getMongoManager().replaceServer(
+                            Bot.getMongoManager().replaceServer(
                                 new ServerWrapper(guild),
                                 new ReplaceOptions().upsert(true)
                             );
@@ -103,7 +100,7 @@ public class Crawler {
                 channels.stream()
                     .forEach(
                         channel -> {
-                            getMongoManager().replaceServerChannel(
+                            Bot.getMongoManager().replaceServerChannel(
                                 new ServerChannel(channel),
                                 new ReplaceOptions().upsert(true)
                             );
@@ -130,7 +127,7 @@ public class Crawler {
                                 .getIterableHistory()
                                 .forEachAsync(
                                     message -> {
-                                        getMongoManager().insertServerMessage(new ServerMessage(message), true);
+                                        Bot.getMongoManager().insertServerMessage(new ServerMessage(message), true);
                                         return true;
                                     },
                                     Throwable::printStackTrace
@@ -153,7 +150,7 @@ public class Crawler {
                 users.stream()
                     .forEach(
                         user -> {
-                            getMongoManager().replaceUser(
+                            Bot.getMongoManager().replaceUser(
                                 new UserWrapper(user),
                                 new ReplaceOptions().upsert(true)
                             );
@@ -175,7 +172,7 @@ public class Crawler {
                 emojis.stream()
                     .forEach(
                         emoji -> {
-                            getMongoManager().replaceServerEmoji(
+                            Bot.getMongoManager().replaceServerEmoji(
                                 new ServerEmoji(emoji),
                                 new ReplaceOptions().upsert(true)
                             );
@@ -197,7 +194,7 @@ public class Crawler {
                 stickers.stream()
                     .forEach(
                         sticker -> {
-                            getMongoManager().replaceServerSticker(
+                            Bot.getMongoManager().replaceServerSticker(
                                 new ServerSticker(sticker),
                                 new ReplaceOptions().upsert(true)
                             );
