@@ -79,6 +79,13 @@ public class ChatBoxPreset {
         return FileUpload.fromData(getJson().getBytes(), "%s%s.json".formatted(FILE_PREFIX, id));
     }
 
+    public ChatBoxPreset setDefault() {
+        this.title = "Assistant";
+        this.description = "A friendly assistant.";
+        this.personality = "You are a friendly assistant.";
+        return this;
+    }
+
     @BsonId
     @BsonProperty("_id")
     private String id;

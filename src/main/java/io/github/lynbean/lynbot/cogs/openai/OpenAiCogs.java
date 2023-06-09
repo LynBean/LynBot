@@ -1,6 +1,5 @@
 package io.github.lynbean.lynbot.cogs.openai;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +18,6 @@ import io.github.lynbean.lynbot.cogs.openai.chat.Chat;
 import io.github.lynbean.lynbot.cogs.openai.chatbox.ChatBox;
 import io.github.lynbean.lynbot.cogs.openai.chatbox.ChatBoxDatabaseManager;
 import io.github.lynbean.lynbot.cogs.openai.chatbox.listener.ChatBoxListener;
-import io.github.lynbean.lynbot.cogs.openai.chatbox.pojo.ChatBoxPreset;
 import io.github.lynbean.lynbot.core.commands.Cog;
 import io.github.lynbean.lynbot.core.commands.CommandRegistry;
 import io.github.lynbean.lynbot.core.commands.SlashCommand;
@@ -306,12 +304,6 @@ public class OpenAiCogs {
                     name = "character",
                     description = "The presets made by LynBean.",
                     required = false
-                ),
-                @SlashCommandMeta.Option(
-                    type = OptionType.STRING,
-                    name = "custom",
-                    description = "Make your own character.",
-                    required = false
                 )
             }
         )
@@ -348,21 +340,10 @@ public class OpenAiCogs {
                     .map(option -> option.getAsString())
                     .orElse(null);
 
-                String custom = Optional.ofNullable(event.getOption("custom"))
-                    .map(option -> option.getAsString())
-                    .orElse(null);
-
                 Message originalMessage = event.getHook().retrieveOriginal().complete();
                 ChatBox chatBox;
 
-                if (custom != null) {
-                    // Create a new character
-                    ChatBoxPreset preset = new ChatBoxPreset()
-                        .setPersonality(custom);
-
-                    chatBox = ChatBox.create(originalMessage, event.getUser(), preset);
-
-                } else if (presetId == null) {
+                if (presetId == null) {
                     // Use default preset
                     chatBox = ChatBox.create(originalMessage, event.getUser());
 

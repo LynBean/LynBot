@@ -112,9 +112,6 @@ public class ChatBoxListener extends ListenerAdapter {
                             .stream()
                             .forEachOrdered( // Mostly it will only have one choice, but just in case
                                 choice -> {
-                                    // // DEBUG purposes
-                                    // System.out.println("\n" + choice.toString() + "\n");
-
                                     String result = choice.getMessage().getContent();
 
                                     if (result == null || result.isEmpty()) {

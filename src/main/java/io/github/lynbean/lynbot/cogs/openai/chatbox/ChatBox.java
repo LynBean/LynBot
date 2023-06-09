@@ -135,6 +135,7 @@ public class ChatBox {
 
     private List<Message> retrieveMessages() {
         return channel.getIterableHistory()
+            // TODO: Integrate this into the preset message to let user configure this
             .takeAsync(15) // Prevents exceeding model's max token limit
             .thenApply(messages -> messages.stream().collect(Collectors.toList()))
             .join();
