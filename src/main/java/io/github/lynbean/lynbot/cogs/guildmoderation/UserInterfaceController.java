@@ -9,6 +9,8 @@ import java.util.stream.Stream;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
+import com.google.common.collect.Lists;
+
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildApplicationCommandPermissionEvent;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildChannelEvent;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildEmojiEvent;
@@ -27,7 +29,6 @@ import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildStickerEve
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildThreadEvent;
 import io.github.lynbean.lynbot.cogs.guildmoderation.pojo.events.GuildVoiceEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -162,23 +163,32 @@ public class UserInterfaceController {
             )
             .build();
 
-        StringSelectMenu menu = StringSelectMenu.create(STRING_SELECT_MENU_ID)
-            .addOptions(getSelectOptions().get(guildEventName))
-            .setMaxValues(25)
-            .setMinValues(1)
-            .setPlaceholder("Select field(s) to toggle")
-            .build();
+        List<List<SelectOption>> groupedOptions = Lists.partition(
+            getSelectOptions().get(guildEventName), 25
+        );
+
+        List<StringSelectMenu> menus = groupedOptions.stream()
+            .map(
+                options -> StringSelectMenu.create("%s_%s".formatted(STRING_SELECT_MENU_ID, options.hashCode()))
+                    .addOptions(options)
+                    .setMaxValues(25)
+                    .setMinValues(1)
+                    .setPlaceholder("Select field(s) to toggle")
+                    .build()
+            )
+            .collect(Collectors.toList());
 
         List<Button> buttons = List.of(
             Button.secondary(BUTTON_SET_LOG_CHANNEL, "Set log channel"),
             Button.secondary(BUTTON_TOGGLE_ALL_EVENTS, "Toggle all events to True/False")
         );
 
-        return new MessageCreateBuilder()
+        MessageCreateBuilder message = new MessageCreateBuilder()
             .addActionRow(buttons)
-            .addActionRow(menu)
-            .addEmbeds(embed)
-            .build();
+            .addEmbeds(embed);
+
+        menus.forEach(message::addActionRow);
+        return message.build();
     }
 
     public <T extends GenericComponentInteractionCreateEvent> void handleMenuInteraction(T t) {
@@ -198,7 +208,7 @@ public class UserInterfaceController {
                     .forEach(fieldName -> guildDatabaseManager.updateField(guildEventName, fieldName, booleanSwitcher));
                 booleanSwitcher = !booleanSwitcher;
             }
-            if (t.getComponentId().equals(STRING_SELECT_MENU_ID)) {
+            if (t.getComponentId().startsWith(STRING_SELECT_MENU_ID)) {
                 ((StringSelectInteractionEvent) t).getSelectedOptions()
                     .stream()
                     .forEach(fieldName -> guildDatabaseManager.updateField(guildEventName, fieldName.getValue()));
