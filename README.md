@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.com/api/oauth2/authorize?client_id=901021413069176832&permissions=58268478598737&scope=bot">
+  <a href="https://discord.com/api/oauth2/authorize?client_id=901021413069176832&permissions=8&scope=bot">
     <img src="https://img.shields.io/badge/OfficialDiscordBot-AddToYourServer-7289DA?style=flat-square&logo=discord&logoColor=white"
          alt="Discord Invite">
   </a>
