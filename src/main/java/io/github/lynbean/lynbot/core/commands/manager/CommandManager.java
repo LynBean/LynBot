@@ -115,7 +115,8 @@ public class CommandManager {
         CommandData commandData = registerSlashCommandData(command);
         slashCommands.put(command.getName(), command);
 
-        guildSlashCommandDatas.getOrDefault(guildId, new ArrayList<>())
+        guildSlashCommandDatas.putIfAbsent(guildId, new ArrayList<>());
+        guildSlashCommandDatas.get(guildId)
             .add(commandData);
 
         return command;
