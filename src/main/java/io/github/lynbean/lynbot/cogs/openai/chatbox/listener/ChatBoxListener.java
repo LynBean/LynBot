@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -31,7 +32,12 @@ public class ChatBoxListener extends ListenerAdapter {
 
     private static WebhookClient getWebhookClient(ThreadChannel threadChannel) {
         TextChannel textChannel = threadChannel.getParentMessageChannel().asTextChannel();
-        List<Webhook> webhooks = textChannel.retrieveWebhooks().complete();
+        List<Webhook> webhooks = textChannel.retrieveWebhooks()
+            .complete()
+            .stream()
+            .filter(hook -> hook.getName().equalsIgnoreCase("ChatBox"))
+            .collect(Collectors.toList());
+
         String webhookName = "ChatBox";
 
         if (webhooks.isEmpty()) {
