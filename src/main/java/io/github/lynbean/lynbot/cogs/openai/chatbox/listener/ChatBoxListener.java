@@ -1,6 +1,7 @@
 package io.github.lynbean.lynbot.cogs.openai.chatbox.listener;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,16 +33,21 @@ public class ChatBoxListener extends ListenerAdapter {
 
     private static WebhookClient getWebhookClient(ThreadChannel threadChannel) {
         TextChannel textChannel = threadChannel.getParentMessageChannel().asTextChannel();
+        final String WEBHOOK_NAME = "ChatBox";
+
         List<Webhook> webhooks = textChannel.retrieveWebhooks()
             .complete()
             .stream()
-            .filter(hook -> hook.getName().equalsIgnoreCase("ChatBox"))
+            .filter(
+                hook -> hook.getName().equalsIgnoreCase(WEBHOOK_NAME) &&
+                    Optional.ofNullable(hook.getOwnerAsUser())
+                        .filter(user -> user.getIdLong() == threadChannel.getGuild().getSelfMember().getIdLong())
+                        .isPresent()
+            )
             .collect(Collectors.toList());
 
-        String webhookName = "ChatBox";
-
         if (webhooks.isEmpty()) {
-            return WebhookClient.withUrl(textChannel.createWebhook(webhookName).complete().getUrl())
+            return WebhookClient.withUrl(textChannel.createWebhook(WEBHOOK_NAME).complete().getUrl())
                 .onThread(threadChannel.getIdLong());
         }
 
