@@ -15,9 +15,10 @@
  */
 package io.github.lynbean.lynbot.core.listeners.waiter;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -58,8 +59,8 @@ import net.dv8tion.jda.internal.utils.Checks;
 public class EventWaiter implements EventListener
 {
     private static final Logger LOG = LoggerFactory.getLogger(EventWaiter.class);
-    private final HashMap<Class<?>, Set<WaitingEvent>> waitingEvents;
-    private final HashMap<Class<?>, Set<WaitingEvent>> sustainableWaitingEvents;
+    private final Map<Class<?>, Set<WaitingEvent>> waitingEvents;
+    private final Map<Class<?>, Set<WaitingEvent>> sustainableWaitingEvents;
     private final ScheduledExecutorService threadpool;
     private final boolean shutdownAutomatically;
 
@@ -112,8 +113,8 @@ public class EventWaiter implements EventListener
         Checks.notNull(threadpool, "ScheduledExecutorService");
         Checks.check(!threadpool.isShutdown(), "Cannot construct EventWaiter with a closed ScheduledExecutorService!");
 
-        this.waitingEvents = new HashMap<>();
-        this.sustainableWaitingEvents = new HashMap<>();
+        this.waitingEvents = new ConcurrentHashMap<>();
+        this.sustainableWaitingEvents = new ConcurrentHashMap<>();
         this.threadpool = threadpool;
 
         // "Why is there no default constructor?"
