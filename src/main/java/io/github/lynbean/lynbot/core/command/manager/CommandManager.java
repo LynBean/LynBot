@@ -1,4 +1,4 @@
-package io.github.lynbean.lynbot.core.commands.manager;
+package io.github.lynbean.lynbot.core.command.manager;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -9,9 +9,9 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.common.command.ContextCommand;
+import io.github.lynbean.lynbot.common.command.SlashCommand;
 import io.github.lynbean.lynbot.core.BotCore;
-import io.github.lynbean.lynbot.core.commands.ContextCommand;
-import io.github.lynbean.lynbot.core.commands.SlashCommand;
 import lombok.Getter;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
@@ -57,7 +57,8 @@ public class CommandManager {
     /**
      * Instantiates a new instance of the given class.
      */
-    private <T> @Nonnull T instantiate(Class<T> clazz) {
+    @Nonnull
+    private <T> T instantiate(Class<T> clazz) {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {

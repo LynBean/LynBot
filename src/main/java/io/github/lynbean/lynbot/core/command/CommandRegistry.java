@@ -1,4 +1,4 @@
-package io.github.lynbean.lynbot.core.commands;
+package io.github.lynbean.lynbot.core.command;
 
 import java.util.List;
 
@@ -7,8 +7,10 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.github.lynbean.lynbot.common.command.ContextCommand;
+import io.github.lynbean.lynbot.common.command.SlashCommand;
 import io.github.lynbean.lynbot.core.BotCore;
-import io.github.lynbean.lynbot.core.commands.manager.CommandManager;
+import io.github.lynbean.lynbot.core.command.manager.CommandManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;

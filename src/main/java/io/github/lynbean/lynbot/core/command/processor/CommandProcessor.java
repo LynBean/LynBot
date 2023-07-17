@@ -1,6 +1,6 @@
-package io.github.lynbean.lynbot.core.commands.processor;
+package io.github.lynbean.lynbot.core.command.processor;
 
-import io.github.lynbean.lynbot.core.commands.CommandRegistry;
+import io.github.lynbean.lynbot.core.command.CommandRegistry;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
