@@ -1,4 +1,4 @@
-package io.github.lynbean.lynbot.core.commands.meta;
+package io.github.lynbean.lynbot.common.command.meta;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

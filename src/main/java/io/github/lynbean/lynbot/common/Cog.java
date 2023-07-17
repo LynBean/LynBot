@@ -1,4 +1,4 @@
-package io.github.lynbean.lynbot.core.commands;
+package io.github.lynbean.lynbot.common;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -11,4 +11,9 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Cog {}
+public @interface Cog {
+    /**
+     * The name of the cog.
+     */
+    String value();
+}

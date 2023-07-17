@@ -1,12 +1,12 @@
-package io.github.lynbean.lynbot.core.commands;
+package io.github.lynbean.lynbot.common.command;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.common.command.meta.ContextCommandMeta;
 import io.github.lynbean.lynbot.core.BotCore;
-import io.github.lynbean.lynbot.core.commands.meta.ContextCommandMeta;
 import lombok.Setter;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 

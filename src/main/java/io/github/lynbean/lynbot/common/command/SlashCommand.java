@@ -1,4 +1,4 @@
-package io.github.lynbean.lynbot.core.commands;
+package io.github.lynbean.lynbot.common.command;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,8 +8,8 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.github.lynbean.lynbot.common.command.meta.SlashCommandMeta;
 import io.github.lynbean.lynbot.core.BotCore;
-import io.github.lynbean.lynbot.core.commands.meta.SlashCommandMeta;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -110,7 +110,7 @@ public abstract class SlashCommand {
      * Handles the auto complete event.
      * @param event
      */
-    protected void autoComplete(CommandAutoCompleteInteractionEvent event) {};
+    public void autoComplete(CommandAutoCompleteInteractionEvent event) {};
 
     /**
      * Executes the command.
