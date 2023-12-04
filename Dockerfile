@@ -8,7 +8,7 @@ WORKDIR /lynbot
 RUN mvn clean install
 
 # Build final image using alpine (Distroless) for smaller image size
-FROM alpine:3.18.0
+FROM alpine:3.18.5
 COPY --from=builder /lynbot/target/LynBot-Snapshot-Jar-with-Dependencies.jar /lynbot/LynBot.jar
 
 # Install useful packages
